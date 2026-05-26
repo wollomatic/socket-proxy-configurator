@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount, tick } from 'svelte';
   import { convert, type OutputMode } from './converter';
 
   let input = $state(`CONTAINERS=1
@@ -7,8 +8,31 @@ PING=1
 VERSION=1
 POST=0`);
   let mode = $state<OutputMode>('command');
+  let inputElement: HTMLTextAreaElement | undefined = $state();
 
   let result = $derived(convert(input, mode));
+
+  function syncRestoredInput() {
+    if (inputElement && inputElement.value !== input) {
+      input = inputElement.value;
+    }
+  }
+
+  onMount(() => {
+    const syncAfterBrowserRestore = () => {
+      void tick().then(() => {
+        syncRestoredInput();
+        requestAnimationFrame(syncRestoredInput);
+      });
+    };
+
+    syncAfterBrowserRestore();
+    window.addEventListener('pageshow', syncAfterBrowserRestore);
+
+    return () => {
+      window.removeEventListener('pageshow', syncAfterBrowserRestore);
+    };
+  });
 
   async function copyOutput() {
     await navigator.clipboard.writeText(result.output);
@@ -34,7 +58,7 @@ POST=0`);
       <div class="panel-head">
         <span>docker-socket-proxy configuration</span>
       </div>
-      <textarea bind:value={input} spellcheck="false" placeholder="CONTAINERS=1&#10;EVENTS=1&#10;PING=1&#10;VERSION=1&#10;POST=0"></textarea>
+      <textarea bind:this={inputElement} bind:value={input} spellcheck="false" placeholder="CONTAINERS=1&#10;EVENTS=1&#10;PING=1&#10;VERSION=1&#10;POST=0"></textarea>
     </label>
 
     <section class="panel">
