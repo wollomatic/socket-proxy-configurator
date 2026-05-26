@@ -3,11 +3,9 @@
   import { convert, type OutputMode } from './converter';
 
   const appVersion = __APP_VERSION__;
-  const defaultInput = `CONTAINERS=1
-EVENTS=1
+  const defaultInput = `EVENTS=1
 PING=1
-VERSION=1
-POST=0`;
+VERSION=1`;
 
   let input = $state(defaultInput);
   let mode = $state<OutputMode>('command');
@@ -171,7 +169,7 @@ POST=0`;
         </div>
       </div>
       <p id="input-help" class="sr-only">Paste docker-socket-proxy environment variables, docker-compose snippets, or env file content.</p>
-      <textarea bind:this={inputElement} bind:value={input} aria-labelledby="input-title" aria-describedby={inputDescription} spellcheck="false" placeholder="CONTAINERS=1&#10;EVENTS=1&#10;PING=1&#10;VERSION=1&#10;POST=0"></textarea>
+      <textarea bind:this={inputElement} bind:value={input} aria-labelledby="input-title" aria-describedby={inputDescription} spellcheck="false" placeholder="paste content here"></textarea>
       {#if inputActionMessage}
         <p id="input-status" class="panel-message" role="status">{inputActionMessage}</p>
       {/if}
