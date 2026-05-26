@@ -1,0 +1,19 @@
+{
+  "name": "socket-proxy-configurator",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.29.3",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "test": "node --experimental-strip-types tests/converter.test.ts",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "latest",
+    "vite": "latest",
+    "svelte": "latest",
+    "typescript": "latest"
+  }
+}
