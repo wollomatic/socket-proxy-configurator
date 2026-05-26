@@ -2,6 +2,7 @@
   import { onMount, tick } from 'svelte';
   import { convert, type OutputMode } from './converter';
 
+  const appVersion = __APP_VERSION__;
   const defaultInput = `CONTAINERS=1
 EVENTS=1
 PING=1
@@ -131,7 +132,9 @@ POST=0`;
     <div>
       <p class="eyebrow">wollomatic/socket-proxy configuration tool</p>
       <h1>Socket Proxy Configuration Converter</h1>
-      <p class="lead">Paste the docker-socket-proxy configuration. The matching regexp allowlist for <a href="https://github.com/wollomatic/socket-proxy">wollomatic/socket-proxy</a> will be generated based on the input. The generated configuration is compatible with wollomatic/socket-proxy 1.12.0 and newer.<br /><br />All data is processed locally in your browser and never leaves your computer.</p>
+      <p class="lead">Paste the docker-socket-proxy configuration. The matching regexp allowlist for <a href="https://github.com/wollomatic/socket-proxy">wollomatic/socket-proxy</a> will be generated based on the input. The generated configuration is compatible with wollomatic/socket-proxy 1.12.0 and newer. <a href="https://github.com/wollomatic/socket-proxy-configurator/blob/main/README.md">More information in the README.</a>
+        <br /><br />
+        All data is processed locally in your browser and never leaves your computer.</p>
     </div>
   </header>
 
@@ -186,13 +189,16 @@ POST=0`;
   </section>
 
   <footer>
+    <br />
     Enabled: {result.enabled.join(', ') || 'none'}<br />
     <br />
     This tool generates configuration output automatically based on the provided input. The generated configuration and code snippets must be reviewed, validated, and tested by a human before being used in production environments.<br />
     No guarantee is given regarding correctness, completeness, security, compatibility, or fitness for a particular purpose. Use at your own risk.<br />
     The authors and contributors assume no liability for any damage, data loss, security issues, downtime, or other consequences resulting from the use of the generated output.<br />
     <br />
-    <a href="https://github.com/wollomatic/socket-proxy-configurator/blob/main/LICENSE">MIT license</a> | <a href="https://github.com/wollomatic/docker-socket-proxy-converter">GitHub</a> | <a href="https://mein.online-impressum.de/wollomatic/">Imprint</a> | <button class="footer-link" type="button" onclick={openPrivacyDialog}>Data protection</button>
+    <a href="https://github.com/wollomatic/socket-proxy-configurator/blob/main/LICENSE">MIT license</a> | <a href="https://github.com/wollomatic/docker-socket-proxy-converter">GitHub</a> | <a href="https://mein.online-impressum.de/wollomatic/">Imprint</a> | <button class="footer-link" type="button" onclick={openPrivacyDialog}>Data protection</button><br />
+    <br />
+    wollomatic/socket-proxy-configurator version {appVersion}
   </footer>
 
   {#if privacyDialogOpen}
