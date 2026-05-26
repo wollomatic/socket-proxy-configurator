@@ -131,7 +131,7 @@ POST=0`;
     <div>
       <p class="eyebrow">wollomatic/socket-proxy configuration tool</p>
       <h1>Socket Proxy Configuration Converter</h1>
-      <p class="lead">Paste the docker-socket-proxy configuration. The matching wollomatic/socket-proxy regexp allowlist is generated according to the input.</p>
+      <p class="lead">Paste the docker-socket-proxy configuration. The matching regexp allowlist for <a href="https://github.com/wollomatic/socket-proxy">wollomatic/socket-proxy</a> will be generated based on the input. The generated configuration is compatible with wollomatic/socket-proxy 1.12.0 and newer.<br /><br />All data is processed locally in your browser and never leaves your computer.</p>
     </div>
   </header>
 
