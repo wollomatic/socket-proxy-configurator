@@ -12,12 +12,16 @@ POST=0`;
   let mode = $state<OutputMode>('command');
   let inputElement: HTMLTextAreaElement | undefined = $state();
   let privacyCloseButton: HTMLButtonElement | undefined = $state();
+  let privacyDialogElement: HTMLDivElement | undefined = $state();
+  let privacyDialogTrigger: HTMLElement | undefined = $state();
   let privacyDialogOpen = $state(false);
   let networkListenCompatibility = $state(false);
   let inputActionMessage = $state('');
+  let outputActionMessage = $state('');
 
   let networkListenCompatibilityEnabled = $derived(mode !== 'labels' && networkListenCompatibility);
   let result = $derived(convert(input, mode, { networkListenCompatibility: networkListenCompatibilityEnabled }));
+  let inputDescription = $derived(inputActionMessage ? 'input-help input-status' : 'input-help');
 
   function syncRestoredInput() {
     if (inputElement && inputElement.value !== input) {
@@ -41,8 +45,20 @@ POST=0`;
     };
   });
 
+  $effect(() => {
+    input;
+    mode;
+    networkListenCompatibilityEnabled;
+    outputActionMessage = '';
+  });
+
   async function copyOutput() {
-    await navigator.clipboard.writeText(result.output);
+    try {
+      await navigator.clipboard.writeText(result.output);
+      outputActionMessage = 'Generated configuration copied to the clipboard.';
+    } catch {
+      outputActionMessage = 'Clipboard access was blocked. Select the generated configuration and copy it manually.';
+    }
   }
 
   function resetInput() {
@@ -62,19 +78,48 @@ POST=0`;
     inputElement?.focus();
   }
 
-  async function openPrivacyDialog() {
+  async function openPrivacyDialog(event: MouseEvent) {
+    privacyDialogTrigger = event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined;
     privacyDialogOpen = true;
     await tick();
     privacyCloseButton?.focus();
   }
 
-  function closePrivacyDialog() {
+  async function closePrivacyDialog() {
     privacyDialogOpen = false;
+    await tick();
+    privacyDialogTrigger?.focus();
   }
 
   function handleKeydown(event: KeyboardEvent) {
     if (event.key === 'Escape' && privacyDialogOpen) {
+      event.preventDefault();
       closePrivacyDialog();
+      return;
+    }
+
+    if (event.key === 'Tab' && privacyDialogOpen && privacyDialogElement) {
+      const focusableElements = Array.from(
+        privacyDialogElement.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      );
+
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
     }
   }
 </script>
@@ -96,15 +141,15 @@ POST=0`;
       <span>Include docker-socket-proxy network listener compatibility settings</span>
     </label>
     <div class="mode" aria-label="Output format">
-      <button class:active={mode === 'command'} onclick={() => (mode = 'command')}>Command line</button>
-      <button class:active={mode === 'env'} onclick={() => (mode = 'env')}>ENV</button>
-      <button class:active={mode === 'labels'} onclick={() => (mode = 'labels')}>Docker labels</button>
+      <button type="button" class:active={mode === 'command'} aria-pressed={mode === 'command'} onclick={() => (mode = 'command')}>Command line</button>
+      <button type="button" class:active={mode === 'env'} aria-pressed={mode === 'env'} onclick={() => (mode = 'env')}>ENV</button>
+      <button type="button" class:active={mode === 'labels'} aria-pressed={mode === 'labels'} onclick={() => (mode = 'labels')}>Docker labels</button>
     </div>
   </div>
 
   {#if result.warnings.length > 0}
-    <aside class="warnings">
-      <strong>Warnings</strong>
+    <aside class="warnings" aria-labelledby="warnings-title" aria-live="polite">
+      <strong id="warnings-title">Warnings</strong>
       <ul>
         {#each result.warnings as warning}
           <li>{warning}</li>
@@ -116,24 +161,27 @@ POST=0`;
   <section class="grid">
     <section class="panel" aria-labelledby="input-title">
       <div class="panel-head">
-        <span id="input-title">docker-socket-proxy configuration</span>
+        <h2 id="input-title">docker-socket-proxy configuration</h2>
         <div class="panel-actions">
           <button class="panel-button" type="button" onclick={resetInput}>Reset</button>
           <button class="panel-button" type="button" onclick={pasteInput}>Paste</button>
         </div>
       </div>
-      <textarea bind:this={inputElement} bind:value={input} aria-labelledby="input-title" spellcheck="false" placeholder="CONTAINERS=1&#10;EVENTS=1&#10;PING=1&#10;VERSION=1&#10;POST=0"></textarea>
+      <p id="input-help" class="sr-only">Paste docker-socket-proxy environment variables, docker-compose snippets, or env file content.</p>
+      <textarea bind:this={inputElement} bind:value={input} aria-labelledby="input-title" aria-describedby={inputDescription} spellcheck="false" placeholder="CONTAINERS=1&#10;EVENTS=1&#10;PING=1&#10;VERSION=1&#10;POST=0"></textarea>
       {#if inputActionMessage}
-        <p class="panel-message">{inputActionMessage}</p>
+        <p id="input-status" class="panel-message" role="status">{inputActionMessage}</p>
       {/if}
     </section>
 
-    <section class="panel">
+    <section class="panel" aria-labelledby="output-title">
       <div class="panel-head">
-        <span id="output-title">wollomatic/socket-proxy configuration</span>
+        <h2 id="output-title">wollomatic/socket-proxy configuration</h2>
         <button class="panel-button" type="button" onclick={copyOutput}>Copy</button>
       </div>
-      <textarea value={result.output} aria-labelledby="output-title" readonly spellcheck="false"></textarea>
+      <p id="output-help" class="sr-only">Generated wollomatic/socket-proxy configuration. This field updates automatically when the input or output format changes.</p>
+      <textarea value={result.output} aria-labelledby="output-title" aria-describedby="output-help output-status" readonly spellcheck="false"></textarea>
+      <p id="output-status" class="panel-message" class:empty={!outputActionMessage} role="status" aria-live="polite">{outputActionMessage}</p>
     </section>
   </section>
 
@@ -144,23 +192,25 @@ POST=0`;
     No guarantee is given regarding correctness, completeness, security, compatibility, or fitness for a particular purpose. Use at your own risk.<br />
     The authors and contributors assume no liability for any damage, data loss, security issues, downtime, or other consequences resulting from the use of the generated output.<br />
     <br />
-    <a href="https://github.com/wollomatic/socket-proxy-configurator/blob/main/LICENSE">MIT license</a> | <a href="https://github.com/wollomatic/docker-socket-proxy-converter">GitHub</a> | <a href="https://mein.online-impressum.de/wollomatic/">Imprint</a> | <button class="footer-link" onclick={openPrivacyDialog}>Data protection</button>
+    <a href="https://github.com/wollomatic/socket-proxy-configurator/blob/main/LICENSE">MIT license</a> | <a href="https://github.com/wollomatic/docker-socket-proxy-converter">GitHub</a> | <a href="https://mein.online-impressum.de/wollomatic/">Imprint</a> | <button class="footer-link" type="button" onclick={openPrivacyDialog}>Data protection</button>
   </footer>
 
   {#if privacyDialogOpen}
     <div class="dialog-layer">
-      <button class="dialog-backdrop" type="button" aria-label="Close data protection information" onclick={closePrivacyDialog}></button>
+      <button class="dialog-backdrop" type="button" tabindex="-1" aria-hidden="true" onclick={closePrivacyDialog}></button>
       <div
+        bind:this={privacyDialogElement}
         class="dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="privacy-title"
+        aria-describedby="privacy-description"
       >
         <div class="dialog-head">
           <h2 id="privacy-title">Data protection</h2>
-          <button class="dialog-close" aria-label="Close data protection information" bind:this={privacyCloseButton} onclick={closePrivacyDialog}>Close</button>
+          <button class="dialog-close" type="button" aria-label="Close data protection information" bind:this={privacyCloseButton} onclick={closePrivacyDialog}>Close</button>
         </div>
-        <p>
+        <p id="privacy-description">
           All data entered into this form is processed locally in your browser and is not sent to the server.
           This website does not use cookies.
         </p>

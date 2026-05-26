@@ -101,6 +101,14 @@ services:
 }
 
 {
+  const result = convert('CONTAINERS=0\ncontainers=1\nEVENTS=0\nPING=0\nVERSION=0', 'env');
+
+  assert(result.output.includes('SP_ALLOW_GET="(/v[\\\\d.]+)?/containers.*"'));
+  assert(result.warnings.some((warning) => warning.includes('Duplicate docker-socket-proxy variable found: CONTAINERS')));
+  assert(result.warnings.some((warning) => warning.includes('Using the last value')));
+}
+
+{
   const result = convert(`
 services:
   proxy:

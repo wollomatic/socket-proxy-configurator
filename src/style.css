@@ -31,6 +31,17 @@ body {
     #0b1020;
 }
 button, textarea, pre { font: inherit; }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 a {
   color: var(--text-accent);
   text-decoration: none;
@@ -168,7 +179,10 @@ h1 { margin: 0; font-size: clamp(1.55rem, 3vw, 2.45rem); line-height: 1.08; }
   border-bottom: 1px solid var(--border);
   background: rgba(255,255,255,.015);
 }
-.panel-head span {
+.panel-head h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -211,6 +225,17 @@ textarea:focus {
   border-top: 1px solid #5a4a20;
   font-size: .9rem;
   line-height: 1.35;
+}
+
+.panel-message.empty {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 
 footer {

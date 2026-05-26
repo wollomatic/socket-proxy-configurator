@@ -5,6 +5,7 @@ export type LegacyConfig = Record<string, string>;
 interface LegacyParseResult {
   config: LegacyConfig;
   invalidLines: string[];
+  duplicateKeys: string[];
 }
 
 export interface ConversionResult {
@@ -148,6 +149,8 @@ function isComposeStructuralLine(line: string): boolean {
 function parseLegacyInputWithDiagnostics(input: string): LegacyParseResult {
   const config: LegacyConfig = {};
   const invalidLines: string[] = [];
+  const seenKeys = new Set<string>();
+  const duplicateKeys = new Set<string>();
   for (const rawLine of input.split(/\r?\n/)) {
     let line = stripInlineComment(rawLine).trim();
     if (!line || line.startsWith('#')) continue;
@@ -170,9 +173,13 @@ function parseLegacyInputWithDiagnostics(input: string): LegacyParseResult {
     const isLikelyEnvVariable = kv[2] === '=' || KNOWN_KEYS.has(key) || /^[A-Z0-9_]+$/.test(kv[1]);
     if (!isLikelyEnvVariable) continue;
 
+    if (seenKeys.has(key)) {
+      duplicateKeys.add(key);
+    }
+    seenKeys.add(key);
     config[key] = normalizeValue(stripInlineComment(kv[3]));
   }
-  return { config, invalidLines };
+  return { config, invalidLines, duplicateKeys: [...duplicateKeys] };
 }
 
 export function parseLegacyInput(input: string): LegacyConfig {
@@ -256,6 +263,10 @@ export function convert(input: string, mode: OutputMode, options: ConversionOpti
 
   for (const line of parsedInput.invalidLines) {
     warnings.push(`Invalid input line ignored: ${JSON.stringify(line)}`);
+  }
+
+  for (const key of parsedInput.duplicateKeys) {
+    warnings.push(`Duplicate docker-socket-proxy variable found: ${key}. Using the last value.`);
   }
 
   if (cfg.BIND_CONFIG) {
