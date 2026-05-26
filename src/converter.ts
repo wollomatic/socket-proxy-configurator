@@ -1,4 +1,4 @@
-export type OutputMode = 'env' | 'command';
+export type OutputMode = 'env' | 'command' | 'labels';
 
 export type LegacyConfig = Record<string, string>;
 
@@ -162,6 +162,11 @@ function asCommandLine(flag: string, value?: string): string {
   return value === undefined ? `- '${flag}'` : `- '${flag}=${value}'`;
 }
 
+function asLabelLine(method: string, value: string, index: number): string {
+  const suffix = index > 0 ? `.${index}` : '';
+  return `  - 'socket-proxy.allow.${method.toLowerCase()}${suffix}=${value}'`;
+}
+
 function patternsFor(keys: string[]): PatternEntry[] {
   return keys.flatMap((key) => (PATHS[key] ?? []).map((pattern) => ({ key, pattern })));
 }
@@ -223,9 +228,14 @@ export function convert(input: string, mode: OutputMode): ConversionResult {
   if (cfg.BIND_CONFIG) {
     warnings.push('BIND_CONFIG is not converted directly. Use listenip/proxyport or Compose port mappings for wollomatic/socket-proxy instead.');
   }
-  if (!configuredAllowFrom) {
+  if (!configuredAllowFrom && mode !== 'labels') {
     warnings.push(
       `Generated allowfrom=${DEFAULT_ALLOW_FROM} for Docker-network compatibility. Restrict this to trusted client CIDRs or hostnames when possible.`
+    );
+  }
+  if (mode === 'labels') {
+    warnings.push(
+      'Docker label allowlists apply per client container. Enable proxycontainername/SP_PROXYCONTAINERNAME on the socket-proxy container so labels can be discovered.'
     );
   }
 
@@ -240,6 +250,15 @@ export function convert(input: string, mode: OutputMode): ConversionResult {
     if (postEnabled) {
       for (const method of WRITE_METHODS) {
         patterns.forEach(({ pattern }, idx) => lines.push(asEnvLine(`SP_ALLOW_${method}`, pattern, idx + 1)));
+      }
+    }
+  } else if (mode === 'labels') {
+    lines.push('labels:');
+    patterns.forEach(({ pattern }, idx) => lines.push(asLabelLine('GET', pattern, idx)));
+    headPatterns.forEach(({ pattern }, idx) => lines.push(asLabelLine('HEAD', pattern, idx)));
+    if (postEnabled) {
+      for (const method of WRITE_METHODS) {
+        patterns.forEach(({ pattern }, idx) => lines.push(asLabelLine(method, pattern, idx)));
       }
     }
   } else {

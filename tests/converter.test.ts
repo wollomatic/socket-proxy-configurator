@@ -62,6 +62,21 @@ services:
 }
 
 {
+  const result = convert('PING=1\nEVENTS=0\nVERSION=0\nPOST=0', 'labels');
+  const outputLines = lines(result.output);
+
+  assert.equal(outputLines[0], 'labels:');
+  assert(outputLines.includes("  - 'socket-proxy.allow.get=/_ping'"));
+  assert(outputLines.includes("  - 'socket-proxy.allow.get.1=/v[\\d.]+/_ping'"));
+  assert(outputLines.includes("  - 'socket-proxy.allow.head=/_ping'"));
+  assert(outputLines.includes("  - 'socket-proxy.allow.head.1=/v[\\d.]+/_ping'"));
+  assert(!result.output.includes('SP_ALLOWFROM'));
+  assert(!result.output.includes('-allowfrom'));
+  assert(!result.warnings.some((warning) => warning.includes('Generated allowfrom=')));
+  assert(result.warnings.some((warning) => warning.includes('SP_PROXYCONTAINERNAME')));
+}
+
+{
   const result = convert('CONTAINERS=maybe\nUNKNOWN=1\nSP_ALLOWFROM=traefik', 'env');
 
   assert(result.warnings.some((warning) => warning.includes('Invalid boolean value for CONTAINERS')));

@@ -25,6 +25,7 @@ POST=0`);
     <div class="mode" aria-label="Output format">
       <button class:active={mode === 'command'} onclick={() => (mode = 'command')}>Command line</button>
       <button class:active={mode === 'env'} onclick={() => (mode = 'env')}>ENV</button>
+      <button class:active={mode === 'labels'} onclick={() => (mode = 'labels')}>Docker labels</button>
     </div>
   </header>
 
