@@ -9,6 +9,8 @@ VERSION=1
 POST=0`);
   let mode = $state<OutputMode>('command');
   let inputElement: HTMLTextAreaElement | undefined = $state();
+  let privacyCloseButton: HTMLButtonElement | undefined = $state();
+  let privacyDialogOpen = $state(false);
   let networkListenCompatibility = $state(false);
 
   let networkListenCompatibilityEnabled = $derived(mode !== 'labels' && networkListenCompatibility);
@@ -39,7 +41,25 @@ POST=0`);
   async function copyOutput() {
     await navigator.clipboard.writeText(result.output);
   }
+
+  async function openPrivacyDialog() {
+    privacyDialogOpen = true;
+    await tick();
+    privacyCloseButton?.focus();
+  }
+
+  function closePrivacyDialog() {
+    privacyDialogOpen = false;
+  }
+
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape' && privacyDialogOpen) {
+      closePrivacyDialog();
+    }
+  }
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <main class="shell">
   <header>
@@ -97,7 +117,31 @@ POST=0`);
     No guarantee is given regarding correctness, completeness, security, compatibility, or fitness for a particular purpose. Use at your own risk.<br />
     The authors and contributors assume no liability for any damage, data loss, security issues, downtime, or other consequences resulting from the use of the generated output.<br />
     <br />
-    <a href="https://github.com/wollomatic/docker-socket-proxy-converter">GitHub</a> | <a href="https://mein.online-impressum.de/wollomatic/">Imprint</a> | <a href="https://github.com/wollomatic/socket-proxy-configurator/blob/main/LICENSE">MIT license</a>
+    <a href="https://github.com/wollomatic/socket-proxy-configurator/blob/main/LICENSE">MIT license</a> | <a href="https://github.com/wollomatic/docker-socket-proxy-converter">GitHub</a> | <a href="https://mein.online-impressum.de/wollomatic/">Imprint</a> | <button class="footer-link" onclick={openPrivacyDialog}>Data protection</button>
   </footer>
 
+  {#if privacyDialogOpen}
+    <div class="dialog-layer">
+      <button class="dialog-backdrop" type="button" aria-label="Close data protection information" onclick={closePrivacyDialog}></button>
+      <div
+        class="dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="privacy-title"
+      >
+        <div class="dialog-head">
+          <h2 id="privacy-title">Data protection</h2>
+          <button class="dialog-close" aria-label="Close data protection information" bind:this={privacyCloseButton} onclick={closePrivacyDialog}>Close</button>
+        </div>
+        <p>
+          All data entered into this form is processed locally in your browser and is not sent to the server.
+          This website does not use cookies.
+        </p>
+        <p>
+          The web server only stores access log data containing the date and time of the request, the user agent,
+          and the referer if one is provided by the browser. IP addresses are not stored.
+        </p>
+      </div>
+    </div>
+  {/if}
 </main>
