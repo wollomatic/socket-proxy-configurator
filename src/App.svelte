@@ -62,6 +62,17 @@ POST=0`);
     </div>
   </div>
 
+  {#if result.warnings.length > 0}
+    <aside class="warnings">
+      <strong>Warnings</strong>
+      <ul>
+        {#each result.warnings as warning}
+          <li>{warning}</li>
+        {/each}
+      </ul>
+    </aside>
+  {/if}
+
   <section class="grid">
     <label class="panel">
       <div class="panel-head">
@@ -78,17 +89,6 @@ POST=0`);
       <pre>{result.output}</pre>
     </section>
   </section>
-
-  {#if result.warnings.length > 0}
-    <aside class="warnings">
-      <strong>Warnings</strong>
-      <ul>
-        {#each result.warnings as warning}
-          <li>{warning}</li>
-        {/each}
-      </ul>
-    </aside>
-  {/if}
 
   <footer>
     Enabled: {result.enabled.join(', ') || 'none'}<br />

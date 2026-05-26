@@ -197,12 +197,12 @@ textarea:focus {
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--text-accent) 55%, transparent);
 }
 
-.warnings,
 footer {
   margin-top: var(--space-container);
 }
 
 .warnings {
+  margin-bottom: var(--space-container);
   padding: 16px 18px;
   border: 1px solid #5a4a20;
   background: #201b0d;
