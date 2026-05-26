@@ -9,8 +9,10 @@ VERSION=1
 POST=0`);
   let mode = $state<OutputMode>('command');
   let inputElement: HTMLTextAreaElement | undefined = $state();
+  let networkListenCompatibility = $state(false);
 
-  let result = $derived(convert(input, mode));
+  let networkListenCompatibilityEnabled = $derived(mode !== 'labels' && networkListenCompatibility);
+  let result = $derived(convert(input, mode, { networkListenCompatibility: networkListenCompatibilityEnabled }));
 
   function syncRestoredInput() {
     if (inputElement && inputElement.value !== input) {
@@ -52,6 +54,11 @@ POST=0`);
       <button class:active={mode === 'labels'} onclick={() => (mode = 'labels')}>Docker labels</button>
     </div>
   </header>
+
+  <label class="compatibility" class:disabled={mode === 'labels'}>
+    <input type="checkbox" bind:checked={networkListenCompatibility} disabled={mode === 'labels'} />
+    <span>Include docker-socket-proxy network listener compatibility settings</span>
+  </label>
 
   <section class="grid">
     <label class="panel">

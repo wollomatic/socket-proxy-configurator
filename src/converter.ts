@@ -8,9 +8,14 @@ export interface ConversionResult {
   enabled: string[];
 }
 
+export interface ConversionOptions {
+  networkListenCompatibility?: boolean;
+}
+
 const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on', 'enable', 'enabled']);
 const FALSE_VALUES = new Set(['0', 'false', 'no', 'off', 'disable', 'disabled']);
 const DEFAULT_ALLOW_FROM = '0.0.0.0/0';
+const DEFAULT_LISTEN_IP = '0.0.0.0';
 
 const DEFAULTS: Record<string, boolean> = {
   EVENTS: true,
@@ -82,6 +87,9 @@ const PASSTHROUGH_KEYS = new Set([
   'LOG_LEVEL',
   'SP_LOGLEVEL',
   'BIND_CONFIG',
+  'LISTENIP',
+  'LISTEN_IP',
+  'SP_LISTENIP',
   'ALLOWFROM',
   'ALLOW_FROM',
   'SP_ALLOWFROM'
@@ -147,8 +155,7 @@ export function parseLegacyInput(input: string): LegacyConfig {
     const isLikelyEnvVariable = kv[2] === '=' || KNOWN_KEYS.has(key) || /^[A-Z0-9_]+$/.test(kv[1]);
     if (!isLikelyEnvVariable) continue;
 
-    const value = normalizeValue(stripInlineComment(kv[3]));
-    config[key] = value;
+    config[key] = normalizeValue(stripInlineComment(kv[3]));
   }
   return config;
 }
@@ -186,7 +193,7 @@ function firstConfigured(cfg: LegacyConfig, keys: string[]): string | undefined 
   return undefined;
 }
 
-export function convert(input: string, mode: OutputMode): ConversionResult {
+export function convert(input: string, mode: OutputMode, options: ConversionOptions = {}): ConversionResult {
   const cfg = parseLegacyInput(input);
   const warnings: string[] = [];
   const bools = new Map<string, boolean>();
@@ -207,7 +214,9 @@ export function convert(input: string, mode: OutputMode): ConversionResult {
   const socketPath = firstConfigured(cfg, ['SOCKET_PATH', 'SP_SOCKETPATH']);
   const logLevel = firstConfigured(cfg, ['LOG_LEVEL', 'SP_LOGLEVEL'])?.toUpperCase();
   const configuredAllowFrom = firstConfigured(cfg, ['SP_ALLOWFROM', 'ALLOWFROM', 'ALLOW_FROM']);
-  const allowFrom = configuredAllowFrom ?? DEFAULT_ALLOW_FROM;
+  const configuredListenIp = firstConfigured(cfg, ['SP_LISTENIP', 'LISTENIP', 'LISTEN_IP']);
+  const allowFrom = configuredAllowFrom ?? (options.networkListenCompatibility ? DEFAULT_ALLOW_FROM : undefined);
+  const listenIp = configuredListenIp ?? (options.networkListenCompatibility ? DEFAULT_LISTEN_IP : undefined);
   const enabled = Object.keys(DEFAULTS).filter((key) => enabledValue(key));
   const postEnabled = enabledValue('POST');
 
@@ -228,9 +237,9 @@ export function convert(input: string, mode: OutputMode): ConversionResult {
   if (cfg.BIND_CONFIG) {
     warnings.push('BIND_CONFIG is not converted directly. Use listenip/proxyport or Compose port mappings for wollomatic/socket-proxy instead.');
   }
-  if (!configuredAllowFrom && mode !== 'labels') {
+  if (options.networkListenCompatibility && mode !== 'labels' && (!configuredAllowFrom || !configuredListenIp)) {
     warnings.push(
-      `Generated allowfrom=${DEFAULT_ALLOW_FROM} for Docker-network compatibility. Restrict this to trusted client CIDRs or hostnames when possible.`
+      `Docker-network listen compatibility uses listenip=${listenIp ?? configuredListenIp} and allowfrom=${allowFrom ?? configuredAllowFrom}. Restrict this to trusted client CIDRs or hostnames when possible.`
     );
   }
   if (mode === 'labels') {
@@ -241,8 +250,8 @@ export function convert(input: string, mode: OutputMode): ConversionResult {
 
   const lines: string[] = [];
   if (mode === 'env') {
-    lines.push('SP_LISTENIP="0.0.0.0"');
-    lines.push(asEnvLine('SP_ALLOWFROM', allowFrom));
+    if (listenIp) lines.push(asEnvLine('SP_LISTENIP', listenIp));
+    if (allowFrom) lines.push(asEnvLine('SP_ALLOWFROM', allowFrom));
     if (socketPath) lines.push(asEnvLine('SP_SOCKETPATH', socketPath));
     if (logLevel) lines.push(asEnvLine('SP_LOGLEVEL', logLevel));
     patterns.forEach(({ pattern }, idx) => lines.push(asEnvLine('SP_ALLOW_GET', pattern, idx + 1)));
@@ -262,8 +271,8 @@ export function convert(input: string, mode: OutputMode): ConversionResult {
       }
     }
   } else {
-    lines.push(asCommandLine('-listenip', '0.0.0.0'));
-    lines.push(asCommandLine('-allowfrom', allowFrom));
+    if (listenIp) lines.push(asCommandLine('-listenip', listenIp));
+    if (allowFrom) lines.push(asCommandLine('-allowfrom', allowFrom));
     if (socketPath) lines.push(asCommandLine('-socketpath', socketPath));
     if (logLevel) lines.push(asCommandLine('-loglevel', logLevel));
     patterns.forEach(({ pattern }) => lines.push(asCommandLine('-allowGET', pattern)));

@@ -28,10 +28,23 @@ services:
   const result = convert('PING=1\nEVENTS=0\nVERSION=0', 'env');
   const outputLines = lines(result.output);
 
+  assert(!outputLines.some((line) => line.startsWith('SP_LISTENIP=')));
+  assert(!outputLines.some((line) => line.startsWith('SP_ALLOWFROM=')));
   assert(outputLines.includes('SP_ALLOW_HEAD="/_ping"'));
   assert(outputLines.includes('SP_ALLOW_HEAD_2="/v[\\\\d.]+/_ping"'));
   assert(outputLines.includes('SP_ALLOW_GET="/_ping"'));
   assert(!outputLines.some((line) => line.startsWith('SP_ALLOW_POST=')));
+}
+
+{
+  const result = convert('PING=1\nEVENTS=0\nVERSION=0', 'env', {
+    networkListenCompatibility: true
+  });
+  const outputLines = lines(result.output);
+
+  assert.equal(outputLines[0], 'SP_LISTENIP="0.0.0.0"');
+  assert.equal(outputLines[1], 'SP_ALLOWFROM="0.0.0.0/0"');
+  assert(result.warnings.some((warning) => warning.includes('uses listenip=0.0.0.0 and allowfrom=0.0.0.0/0')));
 }
 
 {
@@ -77,12 +90,13 @@ services:
 }
 
 {
-  const result = convert('CONTAINERS=maybe\nUNKNOWN=1\nSP_ALLOWFROM=traefik', 'env');
+  const result = convert('CONTAINERS=maybe\nUNKNOWN=1\nSP_ALLOWFROM=traefik\nSP_LISTENIP=192.0.2.10', 'env');
 
   assert(result.warnings.some((warning) => warning.includes('Invalid boolean value for CONTAINERS')));
   assert(!result.output.includes('containers'));
   assert(result.warnings.some((warning) => warning.includes('Unknown docker-socket-proxy variable ignored: UNKNOWN')));
   assert(result.output.includes('SP_ALLOWFROM="traefik"'));
+  assert(result.output.includes('SP_LISTENIP="192.0.2.10"'));
   assert(!result.warnings.some((warning) => warning.includes('Generated allowfrom=')));
 }
 

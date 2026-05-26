@@ -76,9 +76,40 @@ h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 3.2rem); line-height: 1; }
 }
 .mode button.active, .copy { background: var(--accent); }
 .copy:hover { background: var(--accent-hover); }
-.mode button:focus-visible, .copy:focus-visible {
+.mode button:focus-visible, .copy:focus-visible, .compatibility input:focus-visible {
   outline: 2px solid var(--text-accent);
   outline-offset: 2px;
+}
+
+.compatibility {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: var(--space-container);
+  color: var(--text-soft);
+  font-size: .92rem;
+  line-height: 1.25;
+  cursor: pointer;
+}
+
+.compatibility input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.compatibility.disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: .65;
+}
+
+.compatibility.disabled input {
+  cursor: not-allowed;
 }
 
 .grid {
@@ -166,6 +197,11 @@ footer { color: var(--text-muted); font-size: .92rem; }
 
   .mode button {
     flex: 1 1 140px;
+  }
+
+  .compatibility {
+    width: 100%;
+    max-width: none;
   }
 }
 
