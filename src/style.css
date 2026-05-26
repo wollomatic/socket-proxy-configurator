@@ -18,7 +18,7 @@
   --radius-panel: 12px;
   --radius-control: 8px;
   --space-container: 16px;
-  --space-header: 24px;
+  --space-header: 16px;
   --panel-head-height: 58px;
 }
 
@@ -31,6 +31,22 @@ body {
     #0b1020;
 }
 button, textarea, pre { font: inherit; }
+a {
+  color: var(--text-accent);
+  text-decoration: none;
+  text-underline-offset: 3px;
+  transition: color .15s ease, text-decoration-color .15s ease;
+}
+a:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+  text-decoration-color: currentColor;
+}
+a:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
 
 .shell {
   width: min(1440px, calc(100vw - 32px));
@@ -46,11 +62,15 @@ header {
   align-items: end;
   justify-content: space-between;
   gap: var(--space-header);
-  margin-bottom: var(--space-container);
+  margin-bottom: var(--space-header);
 }
 
-h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 3.2rem); line-height: 1; }
-.lead { color: var(--text-soft); max-width: 760px; }
+header > div {
+  width: 100%;
+}
+
+h1 { margin: 0; font-size: clamp(1.55rem, 3vw, 2.45rem); line-height: 1.08; }
+.lead { margin: 10px 0 0; color: var(--text-soft); max-width: none; }
 .eyebrow { margin: 0 0 8px; text-transform: uppercase; letter-spacing: .16em; color: var(--text-accent); font-size: .78rem; }
 
 .mode {
@@ -81,13 +101,20 @@ h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 3.2rem); line-height: 1; }
   outline-offset: 2px;
 }
 
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-container);
+  margin-bottom: var(--space-container);
+}
+
 .compatibility {
   display: flex;
   align-items: center;
   gap: 10px;
-  width: fit-content;
+  min-width: 0;
   max-width: 100%;
-  margin-bottom: var(--space-container);
   color: var(--text-soft);
   font-size: .92rem;
   line-height: 1.25;
@@ -187,6 +214,10 @@ footer { color: var(--text-muted); font-size: .92rem; }
 
 @media (max-width: 1040px) {
   header {
+    display: block;
+  }
+
+  .controls {
     align-items: stretch;
     flex-direction: column;
   }

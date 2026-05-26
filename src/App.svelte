@@ -44,21 +44,23 @@ POST=0`);
 <main class="shell">
   <header>
     <div>
-      <p class="eyebrow">socket proxy configuration converter</p>
-      <h1>docker-socket-proxy → wollomatic/socket-proxy</h1>
+      <p class="eyebrow">wollomatic/socket-proxy configuration tool</p>
+      <h1>Socket Proxy Configuration Converter</h1>
       <p class="lead">Paste the docker-socket-proxy configuration. The matching wollomatic/socket-proxy regexp allowlist is generated according to the input.</p>
     </div>
+  </header>
+
+  <div class="controls">
+    <label class="compatibility" class:disabled={mode === 'labels'}>
+      <input type="checkbox" bind:checked={networkListenCompatibility} disabled={mode === 'labels'} />
+      <span>Include docker-socket-proxy network listener compatibility settings</span>
+    </label>
     <div class="mode" aria-label="Output format">
       <button class:active={mode === 'command'} onclick={() => (mode = 'command')}>Command line</button>
       <button class:active={mode === 'env'} onclick={() => (mode = 'env')}>ENV</button>
       <button class:active={mode === 'labels'} onclick={() => (mode = 'labels')}>Docker labels</button>
     </div>
-  </header>
-
-  <label class="compatibility" class:disabled={mode === 'labels'}>
-    <input type="checkbox" bind:checked={networkListenCompatibility} disabled={mode === 'labels'} />
-    <span>Include docker-socket-proxy network listener compatibility settings</span>
-  </label>
+  </div>
 
   <section class="grid">
     <label class="panel">
@@ -89,7 +91,13 @@ POST=0`);
   {/if}
 
   <footer>
-    Enabled: {result.enabled.join(', ') || 'none'}
+    Enabled: {result.enabled.join(', ') || 'none'}<br />
+    <br />
+    This tool generates configuration output automatically based on the provided input. The generated configuration and code snippets must be reviewed, validated, and tested by a human before being used in production environments.<br />
+    No guarantee is given regarding correctness, completeness, security, compatibility, or fitness for a particular purpose. Use at your own risk.<br />
+    The authors and contributors assume no liability for any damage, data loss, security issues, downtime, or other consequences resulting from the use of the generated output.<br />
+    <br />
+    <a href="https://github.com/wollomatic/docker-socket-proxy-converter">GitHub</a> | <a href="https://mein.online-impressum.de/wollomatic/">Imprint</a> | <a href="https://github.com/wollomatic/socket-proxy-configurator/blob/main/LICENSE">MIT license</a>
   </footer>
 
 </main>
