@@ -2,6 +2,11 @@ export type OutputMode = 'env' | 'command' | 'labels';
 
 export type LegacyConfig = Record<string, string>;
 
+interface LegacyParseResult {
+  config: LegacyConfig;
+  invalidLines: string[];
+}
+
 export interface ConversionResult {
   output: string;
   warnings: string[];
@@ -136,8 +141,13 @@ function parseBool(value: string | undefined, fallback: boolean): { value: boole
   return { value: false, invalid: value };
 }
 
-export function parseLegacyInput(input: string): LegacyConfig {
+function isComposeStructuralLine(line: string): boolean {
+  return line.includes(':') || /^\w[\w.-]*\/[\w./:-]+$/.test(line);
+}
+
+function parseLegacyInputWithDiagnostics(input: string): LegacyParseResult {
   const config: LegacyConfig = {};
+  const invalidLines: string[] = [];
   for (const rawLine of input.split(/\r?\n/)) {
     let line = stripInlineComment(rawLine).trim();
     if (!line || line.startsWith('#')) continue;
@@ -149,7 +159,12 @@ export function parseLegacyInput(input: string): LegacyConfig {
     line = line.replace(envPrefix, '');
 
     const kv = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*([:=])\s*(.*)$/);
-    if (!kv) continue;
+    if (!kv) {
+      if (!isComposeStructuralLine(line)) {
+        invalidLines.push(line);
+      }
+      continue;
+    }
 
     const key = kv[1].toUpperCase();
     const isLikelyEnvVariable = kv[2] === '=' || KNOWN_KEYS.has(key) || /^[A-Z0-9_]+$/.test(kv[1]);
@@ -157,7 +172,11 @@ export function parseLegacyInput(input: string): LegacyConfig {
 
     config[key] = normalizeValue(stripInlineComment(kv[3]));
   }
-  return config;
+  return { config, invalidLines };
+}
+
+export function parseLegacyInput(input: string): LegacyConfig {
+  return parseLegacyInputWithDiagnostics(input).config;
 }
 
 function asEnvLine(key: string, value: string, index?: number): string {
@@ -194,7 +213,8 @@ function firstConfigured(cfg: LegacyConfig, keys: string[]): string | undefined 
 }
 
 export function convert(input: string, mode: OutputMode, options: ConversionOptions = {}): ConversionResult {
-  const cfg = parseLegacyInput(input);
+  const parsedInput = parseLegacyInputWithDiagnostics(input);
+  const cfg = parsedInput.config;
   const warnings: string[] = [];
   const bools = new Map<string, boolean>();
 
@@ -232,6 +252,10 @@ export function convert(input: string, mode: OutputMode, options: ConversionOpti
     if (!KNOWN_KEYS.has(key)) {
       warnings.push(`Unknown docker-socket-proxy variable ignored: ${key}`);
     }
+  }
+
+  for (const line of parsedInput.invalidLines) {
+    warnings.push(`Invalid input line ignored: ${JSON.stringify(line)}`);
   }
 
   if (cfg.BIND_CONFIG) {

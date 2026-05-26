@@ -82,7 +82,7 @@ h1 { margin: 0; font-size: clamp(1.55rem, 3vw, 2.45rem); line-height: 1.08; }
   border-radius: var(--radius-panel);
   padding: 4px;
 }
-.mode button, .copy {
+.mode button, .panel-button {
   border: 0;
   border-radius: var(--radius-control);
   padding: 10px 14px;
@@ -94,9 +94,9 @@ h1 { margin: 0; font-size: clamp(1.55rem, 3vw, 2.45rem); line-height: 1.08; }
 .mode button:hover {
   background: rgba(255,255,255,.06);
 }
-.mode button.active, .copy { background: var(--accent); }
-.copy:hover { background: var(--accent-hover); }
-.mode button:focus-visible, .copy:focus-visible, .compatibility input:focus-visible {
+.mode button.active, .panel-button { background: var(--accent); }
+.panel-button:hover { background: var(--accent-hover); }
+.mode button:focus-visible, .panel-button:focus-visible, .compatibility input:focus-visible {
   outline: 2px solid var(--text-accent);
   outline-offset: 2px;
 }
@@ -175,7 +175,13 @@ h1 { margin: 0; font-size: clamp(1.55rem, 3vw, 2.45rem); line-height: 1.08; }
   white-space: nowrap;
   line-height: 1.25;
 }
-.copy {
+.panel-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.panel-button {
   flex: 0 0 auto;
 }
 textarea, pre {
@@ -195,6 +201,16 @@ textarea, pre {
 }
 textarea:focus {
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--text-accent) 55%, transparent);
+}
+
+.panel-message {
+  margin: 0;
+  padding: 10px 16px;
+  color: #ffe7a3;
+  background: #201b0d;
+  border-top: 1px solid #5a4a20;
+  font-size: .9rem;
+  line-height: 1.35;
 }
 
 footer {

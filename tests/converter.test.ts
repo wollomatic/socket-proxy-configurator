@@ -101,6 +101,23 @@ services:
 }
 
 {
+  const result = convert(`
+services:
+  proxy:
+    image: tecnativa/docker-socket-proxy
+    environment:
+      - CONTAINERS=1
+      this is not valid env
+      /var/run/docker.sock:/var/run/docker.sock
+`, 'env');
+
+  assert(result.warnings.some((warning) => warning.includes('Invalid input line ignored: "this is not valid env"')));
+  assert(!result.warnings.some((warning) => warning.includes('services:')));
+  assert(!result.warnings.some((warning) => warning.includes('image:')));
+  assert(!result.warnings.some((warning) => warning.includes('/var/run/docker.sock')));
+}
+
+{
   const result = convert('EVENTS=maybe\nPING=0\nVERSION=0\nSP_ALLOWFROM=traefik', 'env');
 
   assert(result.warnings.some((warning) => warning.includes('Invalid boolean value for EVENTS')));

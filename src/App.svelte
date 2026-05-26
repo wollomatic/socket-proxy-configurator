@@ -2,16 +2,19 @@
   import { onMount, tick } from 'svelte';
   import { convert, type OutputMode } from './converter';
 
-  let input = $state(`CONTAINERS=1
+  const defaultInput = `CONTAINERS=1
 EVENTS=1
 PING=1
 VERSION=1
-POST=0`);
+POST=0`;
+
+  let input = $state(defaultInput);
   let mode = $state<OutputMode>('command');
   let inputElement: HTMLTextAreaElement | undefined = $state();
   let privacyCloseButton: HTMLButtonElement | undefined = $state();
   let privacyDialogOpen = $state(false);
   let networkListenCompatibility = $state(false);
+  let inputActionMessage = $state('');
 
   let networkListenCompatibilityEnabled = $derived(mode !== 'labels' && networkListenCompatibility);
   let result = $derived(convert(input, mode, { networkListenCompatibility: networkListenCompatibilityEnabled }));
@@ -40,6 +43,23 @@ POST=0`);
 
   async function copyOutput() {
     await navigator.clipboard.writeText(result.output);
+  }
+
+  function resetInput() {
+    input = defaultInput;
+    inputActionMessage = '';
+    inputElement?.focus();
+  }
+
+  async function pasteInput() {
+    try {
+      input = await navigator.clipboard.readText();
+      inputActionMessage = '';
+      await tick();
+    } catch {
+      inputActionMessage = 'Clipboard access was blocked. Focus the input and paste with Ctrl+V or the browser menu.';
+    }
+    inputElement?.focus();
   }
 
   async function openPrivacyDialog() {
@@ -94,19 +114,26 @@ POST=0`);
   {/if}
 
   <section class="grid">
-    <label class="panel">
+    <section class="panel" aria-labelledby="input-title">
       <div class="panel-head">
-        <span>docker-socket-proxy configuration</span>
+        <span id="input-title">docker-socket-proxy configuration</span>
+        <div class="panel-actions">
+          <button class="panel-button" type="button" onclick={resetInput}>Reset</button>
+          <button class="panel-button" type="button" onclick={pasteInput}>Paste</button>
+        </div>
       </div>
-      <textarea bind:this={inputElement} bind:value={input} spellcheck="false" placeholder="CONTAINERS=1&#10;EVENTS=1&#10;PING=1&#10;VERSION=1&#10;POST=0"></textarea>
-    </label>
+      <textarea bind:this={inputElement} bind:value={input} aria-labelledby="input-title" spellcheck="false" placeholder="CONTAINERS=1&#10;EVENTS=1&#10;PING=1&#10;VERSION=1&#10;POST=0"></textarea>
+      {#if inputActionMessage}
+        <p class="panel-message">{inputActionMessage}</p>
+      {/if}
+    </section>
 
     <section class="panel">
       <div class="panel-head">
-        <span>wollomatic/socket-proxy configuration</span>
-        <button class="copy" onclick={copyOutput}>Copy</button>
+        <span id="output-title">wollomatic/socket-proxy configuration</span>
+        <button class="panel-button" type="button" onclick={copyOutput}>Copy</button>
       </div>
-      <pre>{result.output}</pre>
+      <textarea value={result.output} aria-labelledby="output-title" readonly spellcheck="false"></textarea>
     </section>
   </section>
 
