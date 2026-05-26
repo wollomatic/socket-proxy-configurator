@@ -20,7 +20,7 @@ POST=0`);
     <div>
       <p class="eyebrow">socket proxy configuration converter</p>
       <h1>docker-socket-proxy → wollomatic/socket-proxy</h1>
-      <p class="lead">Paste the ENV configuration on the left. The matching regexp allowlist is generated on the right.</p>
+      <p class="lead">Paste the docker-socket-proxy configuration. The matching wollomatic/socket-proxy regexp allowlist is generated according to the input.</p>
     </div>
     <div class="mode" aria-label="Output format">
       <button class:active={mode === 'command'} onclick={() => (mode = 'command')}>Command line</button>
@@ -31,7 +31,9 @@ POST=0`);
 
   <section class="grid">
     <label class="panel">
-      <span>docker-socket-proxy configuration</span>
+      <div class="panel-head">
+        <span>docker-socket-proxy configuration</span>
+      </div>
       <textarea bind:value={input} spellcheck="false" placeholder="CONTAINERS=1&#10;EVENTS=1&#10;PING=1&#10;VERSION=1&#10;POST=0"></textarea>
     </label>
 
@@ -58,4 +60,5 @@ POST=0`);
   <footer>
     Enabled: {result.enabled.join(', ') || 'none'}
   </footer>
+
 </main>
