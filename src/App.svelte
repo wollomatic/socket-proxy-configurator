@@ -12,6 +12,10 @@
   let privacyDialogElement: HTMLDivElement | undefined = $state();
   let privacyDialogTrigger: HTMLElement | undefined = $state();
   let privacyDialogOpen = $state(false);
+  let networkInfoCloseButton: HTMLButtonElement | undefined = $state();
+  let networkInfoDialogElement: HTMLDivElement | undefined = $state();
+  let networkInfoDialogTrigger: HTMLElement | undefined = $state();
+  let networkInfoDialogOpen = $state(false);
   let networkListenCompatibility = $state(false);
   let inputActionMessage = $state('');
   let outputActionMessage = $state('');
@@ -106,6 +110,19 @@
     privacyDialogTrigger?.focus();
   }
 
+  async function openNetworkInfoDialog(event: MouseEvent) {
+    networkInfoDialogTrigger = event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined;
+    networkInfoDialogOpen = true;
+    await tick();
+    networkInfoCloseButton?.focus();
+  }
+
+  async function closeNetworkInfoDialog() {
+    networkInfoDialogOpen = false;
+    await tick();
+    networkInfoDialogTrigger?.focus();
+  }
+
   function handleKeydown(event: KeyboardEvent) {
     if (event.key === 'Escape' && privacyDialogOpen) {
       event.preventDefault();
@@ -113,9 +130,21 @@
       return;
     }
 
-    if (event.key === 'Tab' && privacyDialogOpen && privacyDialogElement) {
+    if (event.key === 'Escape' && networkInfoDialogOpen) {
+      event.preventDefault();
+      closeNetworkInfoDialog();
+      return;
+    }
+
+    const activeDialogElement = privacyDialogOpen
+      ? privacyDialogElement
+      : networkInfoDialogOpen
+        ? networkInfoDialogElement
+        : undefined;
+
+    if (event.key === 'Tab' && activeDialogElement) {
       const focusableElements = Array.from(
-        privacyDialogElement.querySelectorAll<HTMLElement>(
+        activeDialogElement.querySelectorAll<HTMLElement>(
           'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
         )
       );
@@ -146,17 +175,26 @@
     <div>
       <p class="eyebrow">wollomatic/socket-proxy configuration tool</p>
       <h1>Socket Proxy Configuration Converter</h1>
-      <p class="lead">Paste the docker-socket-proxy configuration. The matching regexp allowlist for <a href="https://github.com/wollomatic/socket-proxy">wollomatic/socket-proxy</a> will be generated based on the input. The generated configuration is compatible with wollomatic/socket-proxy 1.12.0 and newer. <a href="https://github.com/wollomatic/socket-proxy-configurator/blob/main/README.md">More information in the README.</a>
+      <p class="lead">Paste the configuration that is valid for <a href="https://github.com/Tecnativa/docker-socket-proxy">tecnativa/docker-socket-proxy</a> or <a href="https://github.com/linuxserver/docker-socket-proxy">linuxserver/docker-socket-proxy</a> into the left panel. The matching regexp allowlist for <a href="https://github.com/wollomatic/socket-proxy">wollomatic/socket-proxy</a> will be generated from that input. The generated configuration is compatible with wollomatic/socket-proxy 1.12.0 and newer. <a href="https://github.com/wollomatic/socket-proxy-configurator/blob/main/README.md">More information in the README.</a>
         <br /><br />
         All data is processed locally in your browser and never leaves your computer.</p>
     </div>
   </header>
 
   <div class="controls">
-    <label class="compatibility" class:disabled={mode === 'labels'}>
-      <input type="checkbox" bind:checked={networkListenCompatibility} disabled={mode === 'labels'} />
-      <span>Include docker-socket-proxy network listener compatibility settings</span>
-    </label>
+    <div class="compatibility-control">
+      <label class="compatibility" class:disabled={mode === 'labels'}>
+        <input type="checkbox" bind:checked={networkListenCompatibility} disabled={mode === 'labels'} />
+        <span>Include docker-socket-proxy network listener compatibility settings</span>
+      </label>
+      <button
+        class="info-button"
+        type="button"
+        aria-label="Show network listener compatibility information"
+        aria-haspopup="dialog"
+        onclick={openNetworkInfoDialog}
+      >i</button>
+    </div>
     <div class="mode" aria-label="Output format">
       <button type="button" class:active={mode === 'command'} aria-pressed={mode === 'command'} onclick={() => (mode = 'command')}>Command line</button>
       <button type="button" class:active={mode === 'env'} aria-pressed={mode === 'env'} onclick={() => (mode = 'env')}>ENV</button>
@@ -241,6 +279,35 @@
         <p>
           The web server only stores access log data containing the date and time of the request, the user agent,
           and the referer if one is provided by the browser. IP addresses are not stored.
+        </p>
+      </div>
+    </div>
+  {/if}
+
+  {#if networkInfoDialogOpen}
+    <div class="dialog-layer">
+      <button class="dialog-backdrop" type="button" tabindex="-1" aria-hidden="true" onclick={closeNetworkInfoDialog}></button>
+      <div
+        bind:this={networkInfoDialogElement}
+        class="dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="network-info-title"
+        aria-describedby="network-info-description"
+      >
+        <div class="dialog-head">
+          <h2 id="network-info-title">Network listener compatibility</h2>
+          <button class="dialog-close" type="button" aria-label="Close network listener compatibility information" bind:this={networkInfoCloseButton} onclick={closeNetworkInfoDialog}>Close</button>
+        </div>
+        <p id="network-info-description">
+          docker-socket-proxy commonly listens on the Docker network and restricts clients by source address.
+          Enabling this option adds wollomatic/socket-proxy listener settings that mirror that setup when no explicit values are provided.
+        </p>
+        <p>
+          The converter adds listenip and allowfrom defaults for command-line and ENV output. Review the generated allowfrom value and restrict it to trusted client CIDRs or hostnames before using it in production.
+        </p>
+        <p>
+          Security note: allowing all clients on a Docker network is convenient, but broad. wollomatic/socket-proxy can do better than that by limiting access to specific client containers, CIDRs, or hostnames, so prefer a narrow allowfrom value whenever possible.
         </p>
       </div>
     </div>

@@ -285,7 +285,7 @@ export function convert(input: string, mode: OutputMode, options: ConversionOpti
   }
   if (mode === 'labels') {
     warnings.push(
-      'Docker label allowlists apply per client container. Enable proxycontainername/SP_PROXYCONTAINERNAME on the socket-proxy container so labels can be discovered.'
+      'Docker label allowlists apply per client container. Enable -proxycontainername/SP_PROXYCONTAINERNAME on the socket-proxy container so labels can be discovered.'
     );
   }
 

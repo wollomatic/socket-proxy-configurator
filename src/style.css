@@ -107,7 +107,7 @@ h1 { margin: 0; font-size: clamp(1.55rem, 3vw, 2.45rem); line-height: 1.08; }
 }
 .mode button.active, .panel-button { background: var(--accent); }
 .panel-button:hover { background: var(--accent-hover); }
-.mode button:focus-visible, .panel-button:focus-visible, .compatibility input:focus-visible {
+.mode button:focus-visible, .panel-button:focus-visible, .compatibility input:focus-visible, .info-button:focus-visible {
   outline: 2px solid var(--text-accent);
   outline-offset: 2px;
 }
@@ -132,6 +132,14 @@ h1 { margin: 0; font-size: clamp(1.55rem, 3vw, 2.45rem); line-height: 1.08; }
   cursor: pointer;
 }
 
+.compatibility-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .compatibility input {
   flex: 0 0 auto;
   width: 18px;
@@ -148,6 +156,30 @@ h1 { margin: 0; font-size: clamp(1.55rem, 3vw, 2.45rem); line-height: 1.08; }
 
 .compatibility.disabled input {
   cursor: not-allowed;
+}
+
+.info-button {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid #3b4a70;
+  border-radius: 50%;
+  padding: 0;
+  color: var(--text-accent);
+  background: var(--surface-raised);
+  font-size: .78rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.info-button:hover {
+  border-color: var(--text-accent);
+  color: var(--text);
+  background: rgba(255,255,255,.06);
 }
 
 .grid {
@@ -356,9 +388,17 @@ footer { color: var(--text-muted); font-size: .92rem; }
     flex: 1 1 140px;
   }
 
-  .compatibility {
+  .compatibility-control, .compatibility {
     width: 100%;
     max-width: none;
+  }
+
+  .compatibility-control {
+    align-items: flex-start;
+  }
+
+  .info-button {
+    margin-top: 1px;
   }
 }
 
