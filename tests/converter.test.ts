@@ -25,14 +25,29 @@ services:
 }
 
 {
+  const result = convert('EVENTS=1\nPING=1\nVERSION=1', 'command');
+
+  assert.equal(
+    result.output,
+    [
+      "- '-allowGET=(/v[\\d.]+)?/_ping'",
+      "- '-allowGET=(/v[\\d.]+)?/events.*'",
+      "- '-allowGET=(/v[\\d.]+)?/version'",
+      "- '-allowHEAD=(/v[\\d.]+)?/_ping'",
+      "- '-allowHEAD=(/v[\\d.]+)?/events.*'",
+      "- '-allowHEAD=(/v[\\d.]+)?/version'"
+    ].join('\n')
+  );
+}
+
+{
   const result = convert('PING=1\nEVENTS=0\nVERSION=0', 'env');
   const outputLines = lines(result.output);
 
   assert(!outputLines.some((line) => line.startsWith('SP_LISTENIP=')));
   assert(!outputLines.some((line) => line.startsWith('SP_ALLOWFROM=')));
-  assert(outputLines.includes('SP_ALLOW_HEAD="/_ping"'));
-  assert(outputLines.includes('SP_ALLOW_HEAD_2="/v[\\\\d.]+/_ping"'));
-  assert(outputLines.includes('SP_ALLOW_GET="/_ping"'));
+  assert(outputLines.includes('SP_ALLOW_HEAD="(/v[\\\\d.]+)?/_ping"'));
+  assert(outputLines.includes('SP_ALLOW_GET="(/v[\\\\d.]+)?/_ping"'));
   assert(!outputLines.some((line) => line.startsWith('SP_ALLOW_POST=')));
 }
 
@@ -79,10 +94,8 @@ services:
   const outputLines = lines(result.output);
 
   assert.equal(outputLines[0], 'labels:');
-  assert(outputLines.includes("  - 'socket-proxy.allow.get=/_ping'"));
-  assert(outputLines.includes("  - 'socket-proxy.allow.get.1=/v[\\d.]+/_ping'"));
-  assert(outputLines.includes("  - 'socket-proxy.allow.head=/_ping'"));
-  assert(outputLines.includes("  - 'socket-proxy.allow.head.1=/v[\\d.]+/_ping'"));
+  assert(outputLines.includes("  - 'socket-proxy.allow.get=(/v[\\d.]+)?/_ping'"));
+  assert(outputLines.includes("  - 'socket-proxy.allow.head=(/v[\\d.]+)?/_ping'"));
   assert(!result.output.includes('SP_ALLOWFROM'));
   assert(!result.output.includes('-allowfrom'));
   assert(!result.warnings.some((warning) => warning.includes('Generated allowfrom=')));

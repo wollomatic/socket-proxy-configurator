@@ -59,35 +59,31 @@ Selectable output modes:
 Example ENV output:
 
 ```env
-SP_ALLOW_GET=(/v[\d.]+)?/containers.*
+SP_ALLOW_GET=(/v[\d.]+)?/_ping
 SP_ALLOW_GET_2=(/v[\d.]+)?/events.*
-SP_ALLOW_GET_3=/version
-SP_ALLOW_GET_4=/v[\d.]+/version
-SP_ALLOW_GET_5=/_ping
-SP_ALLOW_GET_6=/v[\d.]+/_ping
-SP_ALLOW_HEAD=/_ping
-SP_ALLOW_HEAD_2=/v[\d.]+/_ping
-SP_ALLOW_HEAD_3=(/v[\d.]+)?/containers.*
-SP_ALLOW_HEAD_4=(/v[\d.]+)?/events.*
-SP_ALLOW_HEAD_5=/version
-SP_ALLOW_HEAD_6=/v[\d.]+/version
+SP_ALLOW_GET_3=(/v[\d.]+)?/version
+SP_ALLOW_GET_4=(/v[\d.]+)?/containers.*
+SP_ALLOW_GET_5=(/v[\d.]+)?/images.*
+SP_ALLOW_HEAD=(/v[\d.]+)?/_ping
+SP_ALLOW_HEAD_2=(/v[\d.]+)?/events.*
+SP_ALLOW_HEAD_3=(/v[\d.]+)?/version
+SP_ALLOW_HEAD_4=(/v[\d.]+)?/containers.*
+SP_ALLOW_HEAD_5=(/v[\d.]+)?/images.*
 ```
 
 Example command output:
 
 ```text
--allowGET=(/v[\d.]+)?/containers.*
+-allowGET=(/v[\d.]+)?/_ping
 -allowGET=(/v[\d.]+)?/events.*
--allowGET=/version
--allowGET=/v[\d.]+/version
--allowGET=/_ping
--allowGET=/v[\d.]+/_ping
--allowHEAD=/_ping
--allowHEAD=/v[\d.]+/_ping
--allowHEAD=(/v[\d.]+)?/containers.*
+-allowGET=(/v[\d.]+)?/version
+-allowGET=(/v[\d.]+)?/containers.*
+-allowGET=(/v[\d.]+)?/images.*
+-allowHEAD=(/v[\d.]+)?/_ping
 -allowHEAD=(/v[\d.]+)?/events.*
--allowHEAD=/version
--allowHEAD=/v[\d.]+/version
+-allowHEAD=(/v[\d.]+)?/version
+-allowHEAD=(/v[\d.]+)?/containers.*
+-allowHEAD=(/v[\d.]+)?/images.*
 ```
 
 ---

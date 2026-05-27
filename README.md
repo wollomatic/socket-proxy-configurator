@@ -38,11 +38,10 @@ POST=0
 can be converted into command-line allowlist arguments such as:
 
 ```text
-- '-allowGET=(/v[\d.]+)?/containers.*'
+- '-allowGET=(/v[\d.]+)?/_ping'
 - '-allowGET=(/v[\d.]+)?/events.*'
-- '-allowGET=/_ping'
-- '-allowGET=/v[\d.]+/_ping'
-- '-allowHEAD=/_ping'
+- '-allowGET=(/v[\d.]+)?/containers.*'
+- '-allowHEAD=(/v[\d.]+)?/_ping'
 ```
 
 The generated output is meant to emulate `docker-socket-proxy` behavior as

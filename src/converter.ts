@@ -74,7 +74,7 @@ const PATHS: Record<string, string[]> = {
   INFO: ['(/v[\\d.]+)?/info.*'],
   NETWORKS: ['(/v[\\d.]+)?/networks.*'],
   NODES: ['(/v[\\d.]+)?/nodes.*'],
-  PING: ['/_ping', '/v[\\d.]+/_ping'],
+  PING: ['(/v[\\d.]+)?/_ping'],
   PLUGINS: ['(/v[\\d.]+)?/plugins.*'],
   SECRETS: ['(/v[\\d.]+)?/secrets.*'],
   SERVICES: ['(/v[\\d.]+)?/services.*'],
@@ -82,7 +82,7 @@ const PATHS: Record<string, string[]> = {
   SWARM: ['(/v[\\d.]+)?/swarm.*'],
   SYSTEM: ['(/v[\\d.]+)?/system.*'],
   TASKS: ['(/v[\\d.]+)?/tasks.*'],
-  VERSION: ['/version', '/v[\\d.]+/version'],
+  VERSION: ['(/v[\\d.]+)?/version'],
   VOLUMES: ['(/v[\\d.]+)?/volumes.*']
 };
 
@@ -204,11 +204,10 @@ function patternsFor(keys: string[]): PatternEntry[] {
   return keys.flatMap((key) => (PATHS[key] ?? []).map((pattern) => ({ key, pattern })));
 }
 
-function headPatternsFor(keys: string[]): PatternEntry[] {
-  const allPatterns = patternsFor(keys);
+function pingFirst(patterns: PatternEntry[]): PatternEntry[] {
   return [
-    ...allPatterns.filter(({ key }) => key === 'PING'),
-    ...allPatterns.filter(({ key }) => key !== 'PING')
+    ...patterns.filter(({ key }) => key === 'PING'),
+    ...patterns.filter(({ key }) => key !== 'PING')
   ];
 }
 
@@ -248,8 +247,7 @@ export function convert(input: string, mode: OutputMode, options: ConversionOpti
   const postEnabled = enabledValue('POST');
 
   const enabledSections = enabled.filter((key) => key !== 'POST');
-  const patterns = patternsFor(enabledSections);
-  const headPatterns = headPatternsFor(enabledSections);
+  const patterns = pingFirst(patternsFor(enabledSections));
 
   if (patterns.length === 0) {
     warnings.push('No Docker API section is enabled. The generated configuration would block all Docker requests.');
@@ -290,7 +288,7 @@ export function convert(input: string, mode: OutputMode, options: ConversionOpti
     if (socketPath) lines.push(asEnvLine('SP_SOCKETPATH', socketPath));
     if (logLevel) lines.push(asEnvLine('SP_LOGLEVEL', logLevel));
     patterns.forEach(({ pattern }, idx) => lines.push(asEnvLine('SP_ALLOW_GET', pattern, idx + 1)));
-    headPatterns.forEach(({ pattern }, idx) => lines.push(asEnvLine('SP_ALLOW_HEAD', pattern, idx + 1)));
+    patterns.forEach(({ pattern }, idx) => lines.push(asEnvLine('SP_ALLOW_HEAD', pattern, idx + 1)));
     if (postEnabled) {
       for (const method of WRITE_METHODS) {
         patterns.forEach(({ pattern }, idx) => lines.push(asEnvLine(`SP_ALLOW_${method}`, pattern, idx + 1)));
@@ -299,7 +297,7 @@ export function convert(input: string, mode: OutputMode, options: ConversionOpti
   } else if (mode === 'labels') {
     lines.push('labels:');
     patterns.forEach(({ pattern }, idx) => lines.push(asLabelLine('GET', pattern, idx)));
-    headPatterns.forEach(({ pattern }, idx) => lines.push(asLabelLine('HEAD', pattern, idx)));
+    patterns.forEach(({ pattern }, idx) => lines.push(asLabelLine('HEAD', pattern, idx)));
     if (postEnabled) {
       for (const method of WRITE_METHODS) {
         patterns.forEach(({ pattern }, idx) => lines.push(asLabelLine(method, pattern, idx)));
@@ -311,7 +309,7 @@ export function convert(input: string, mode: OutputMode, options: ConversionOpti
     if (socketPath) lines.push(asCommandLine('-socketpath', socketPath));
     if (logLevel) lines.push(asCommandLine('-loglevel', logLevel));
     patterns.forEach(({ pattern }) => lines.push(asCommandLine('-allowGET', pattern)));
-    headPatterns.forEach(({ pattern }) => lines.push(asCommandLine('-allowHEAD', pattern)));
+    patterns.forEach(({ pattern }) => lines.push(asCommandLine('-allowHEAD', pattern)));
     if (postEnabled) {
       for (const method of WRITE_METHODS) {
         patterns.forEach(({ pattern }) => lines.push(asCommandLine(`-allow${method}`, pattern)));
