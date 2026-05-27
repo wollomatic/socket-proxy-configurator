@@ -40,8 +40,10 @@ can be converted into command-line allowlist arguments such as:
 ```text
 - '-allowGET=(/v[\d.]+)?/_ping'
 - '-allowGET=(/v[\d.]+)?/events.*'
-- '-allowGET=(/v[\d.]+)?/containers.*'
+- '-allowGET=(/v[\d.]+)?/version'
 - '-allowHEAD=(/v[\d.]+)?/_ping'
+- '-allowHEAD=(/v[\d.]+)?/events.*'
+- '-allowHEAD=(/v[\d.]+)?/version'
 ```
 
 The generated output is meant to emulate `docker-socket-proxy` behavior as
