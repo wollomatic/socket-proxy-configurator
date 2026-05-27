@@ -9,16 +9,16 @@ importers:
   .:
     devDependencies:
       '@sveltejs/vite-plugin-svelte':
-        specifier: latest
+        specifier: 7.1.2
         version: 7.1.2(svelte@5.55.9)(vite@8.0.14)
       svelte:
-        specifier: latest
+        specifier: 5.55.9
         version: 5.55.9
       typescript:
-        specifier: latest
+        specifier: 6.0.3
         version: 6.0.3
       vite:
-        specifier: latest
+        specifier: 8.0.14
         version: 8.0.14
 
 packages:

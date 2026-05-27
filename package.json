@@ -1,6 +1,7 @@
 {
   "name": "socket-proxy-configurator",
-  "version": "0.1.0",
+  "version": "0.2.0",
+  "license": "MIT",
   "private": true,
   "packageManager": "pnpm@10.29.3",
   "type": "module",
@@ -11,9 +12,9 @@
     "preview": "vite preview --host 0.0.0.0"
   },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "latest",
-    "vite": "latest",
-    "svelte": "latest",
-    "typescript": "latest"
+    "@sveltejs/vite-plugin-svelte": "7.1.2",
+    "vite": "8.0.14",
+    "svelte": "5.55.9",
+    "typescript": "6.0.3"
   }
 }
