@@ -55,6 +55,14 @@ const DEFAULTS: Record<string, boolean> = {
   VOLUMES: false
 };
 
+export const defaultLegacyInput = `EVENTS=1
+PING=1
+VERSION=1`;
+
+export const allLegacyOptionsInput = Object.entries(DEFAULTS)
+  .map(([key, enabled]) => `${key}=${enabled ? '1' : '0'}`)
+  .join('\n');
+
 const PATHS: Record<string, string[]> = {
   ALLOW_RESTARTS: ['(/v[\\d.]+)?/containers/[a-zA-Z0-9_.-]+/(stop|restart|kill).*'],
   ALLOW_START: ['(/v[\\d.]+)?/containers/[a-zA-Z0-9_.-]+/start.*'],

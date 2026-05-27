@@ -1,15 +1,13 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
-  import { convert, type OutputMode } from './converter';
+  import { allLegacyOptionsInput, convert, defaultLegacyInput, type OutputMode } from './converter';
 
   const appVersion = __APP_VERSION__;
-  const defaultInput = `EVENTS=1
-PING=1
-VERSION=1`;
 
-  let input = $state(defaultInput);
+  let input = $state(defaultLegacyInput);
   let mode = $state<OutputMode>('command');
   let inputElement: HTMLTextAreaElement | undefined = $state();
+  let outputElement: HTMLTextAreaElement | undefined = $state();
   let privacyCloseButton: HTMLButtonElement | undefined = $state();
   let privacyDialogElement: HTMLDivElement | undefined = $state();
   let privacyDialogTrigger: HTMLElement | undefined = $state();
@@ -52,18 +50,36 @@ VERSION=1`;
   });
 
   async function copyOutput() {
+    const hasSelectedOutput = outputElement && outputElement.selectionStart !== outputElement.selectionEnd;
+    const selectedOutput = hasSelectedOutput
+      ? outputElement.value.slice(outputElement.selectionStart, outputElement.selectionEnd)
+      : result.output;
+
     try {
-      await navigator.clipboard.writeText(result.output);
-      outputActionMessage = 'Generated configuration copied to the clipboard.';
+      await navigator.clipboard.writeText(selectedOutput);
+      outputActionMessage = hasSelectedOutput
+        ? 'Selection copied to the clipboard.'
+        : 'Generated configuration copied to the clipboard.';
     } catch {
       outputActionMessage = 'Clipboard access was blocked. Select the generated configuration and copy it manually.';
     }
   }
 
   function resetInput() {
-    input = defaultInput;
+    input = defaultLegacyInput;
     inputActionMessage = '';
     inputElement?.focus();
+  }
+
+  function insertAllOptions() {
+    input = allLegacyOptionsInput;
+    inputActionMessage = '';
+    inputElement?.focus();
+  }
+
+  function selectOutput() {
+    outputElement?.focus();
+    outputElement?.select();
   }
 
   async function pasteInput() {
@@ -165,7 +181,8 @@ VERSION=1`;
         <h2 id="input-title">docker-socket-proxy configuration</h2>
         <div class="panel-actions">
           <button class="panel-button" type="button" onclick={resetInput}>Reset</button>
-          <button class="panel-button" type="button" onclick={pasteInput}>Paste</button>
+          <button class="panel-button" type="button" onclick={insertAllOptions}>All options</button>
+          <button class="panel-button" type="button" onclick={pasteInput}>Clear &amp; Paste</button>
         </div>
       </div>
       <p id="input-help" class="sr-only">Paste docker-socket-proxy environment variables, docker-compose snippets, or env file content.</p>
@@ -178,10 +195,13 @@ VERSION=1`;
     <section class="panel" aria-labelledby="output-title">
       <div class="panel-head">
         <h2 id="output-title">wollomatic/socket-proxy configuration</h2>
-        <button class="panel-button" type="button" onclick={copyOutput}>Copy</button>
+        <div class="panel-actions">
+          <button class="panel-button" type="button" onclick={selectOutput}>Select all</button>
+          <button class="panel-button" type="button" onclick={copyOutput}>Copy</button>
+        </div>
       </div>
       <p id="output-help" class="sr-only">Generated wollomatic/socket-proxy configuration. This field updates automatically when the input or output format changes.</p>
-      <textarea value={result.output} aria-labelledby="output-title" aria-describedby="output-help output-status" readonly spellcheck="false"></textarea>
+      <textarea bind:this={outputElement} value={result.output} aria-labelledby="output-title" aria-describedby="output-help output-status" readonly spellcheck="false"></textarea>
       <p id="output-status" class="panel-message" class:empty={!outputActionMessage} role="status" aria-live="polite">{outputActionMessage}</p>
     </section>
   </section>
