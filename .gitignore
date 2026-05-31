@@ -33,3 +33,6 @@ pnpm-debug.log*
 # OS files
 .DS_Store
 Thumbs.db
+
+# local deployment script
+scripts/
