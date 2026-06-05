@@ -2,6 +2,8 @@ import { defineConfig, type Plugin } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import packageJson from './package.json';
 
+const buildDate = new Date().toISOString().slice(0, 10);
+
 const productionCsp = [
   "default-src 'none'",
   "script-src 'self'",
@@ -70,7 +72,8 @@ function productionSecurityMeta(): Plugin {
 export default defineConfig({
   plugins: [svelte(), productionSecurityMeta()],
   define: {
-    __APP_VERSION__: JSON.stringify(packageJson.version)
+    __APP_VERSION__: JSON.stringify(packageJson.version),
+    __BUILD_DATE__: JSON.stringify(buildDate)
   },
   build: {
     target: 'es2022',
