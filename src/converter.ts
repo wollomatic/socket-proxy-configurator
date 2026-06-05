@@ -16,6 +16,7 @@ export interface ConversionResult {
 
 export interface ConversionOptions {
   networkListenCompatibility?: boolean;
+  omitUnusedDockerMethods?: boolean;
 }
 
 const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on', 'enable', 'enabled']);
@@ -95,6 +96,7 @@ const PATHS: Record<string, string[]> = {
 };
 
 const WRITE_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'CONNECT', 'TRACE'] as const;
+const DOCKER_WRITE_METHODS = ['POST', 'PUT', 'DELETE'] as const;
 const PASSTHROUGH_KEYS = new Set([
   'SOCKET_PATH',
   'SP_SOCKETPATH',
@@ -256,6 +258,7 @@ export function convert(input: string, mode: OutputMode, options: ConversionOpti
 
   const enabledSections = enabled.filter((key) => key !== 'POST');
   const patterns = pingFirst(patternsFor(enabledSections));
+  const writeMethods = options.omitUnusedDockerMethods === false ? WRITE_METHODS : DOCKER_WRITE_METHODS;
 
   if (patterns.length === 0) {
     warnings.push('No Docker API section is enabled. The generated configuration would block all Docker requests.');
@@ -298,7 +301,7 @@ export function convert(input: string, mode: OutputMode, options: ConversionOpti
     patterns.forEach(({ pattern }, idx) => lines.push(asEnvLine('SP_ALLOW_GET', pattern, idx + 1)));
     patterns.forEach(({ pattern }, idx) => lines.push(asEnvLine('SP_ALLOW_HEAD', pattern, idx + 1)));
     if (postEnabled) {
-      for (const method of WRITE_METHODS) {
+      for (const method of writeMethods) {
         patterns.forEach(({ pattern }, idx) => lines.push(asEnvLine(`SP_ALLOW_${method}`, pattern, idx + 1)));
       }
     }
@@ -307,7 +310,7 @@ export function convert(input: string, mode: OutputMode, options: ConversionOpti
     patterns.forEach(({ pattern }, idx) => lines.push(asLabelLine('GET', pattern, idx)));
     patterns.forEach(({ pattern }, idx) => lines.push(asLabelLine('HEAD', pattern, idx)));
     if (postEnabled) {
-      for (const method of WRITE_METHODS) {
+      for (const method of writeMethods) {
         patterns.forEach(({ pattern }, idx) => lines.push(asLabelLine(method, pattern, idx)));
       }
     }
@@ -319,7 +322,7 @@ export function convert(input: string, mode: OutputMode, options: ConversionOpti
     patterns.forEach(({ pattern }) => lines.push(asCommandLine('-allowGET', pattern)));
     patterns.forEach(({ pattern }) => lines.push(asCommandLine('-allowHEAD', pattern)));
     if (postEnabled) {
-      for (const method of WRITE_METHODS) {
+      for (const method of writeMethods) {
         patterns.forEach(({ pattern }) => lines.push(asCommandLine(`-allow${method}`, pattern)));
       }
     }

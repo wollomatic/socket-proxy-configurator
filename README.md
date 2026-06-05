@@ -81,10 +81,11 @@ that previously exposed `docker-socket-proxy` over a Docker network.
 ## Compatibility Notes
 
 - `POST=0` generates only `GET` and `HEAD` allowlists.
-- `POST=1` additionally generates write-method allowlists for enabled Docker
-  API sections.
-- `HEAD /_ping` is generated when `PING` is enabled, which is required by
-  modern Traefik health checks.
+- When `POST=1` and **Omit HTTP methods not used by Docker** is enabled, only
+  `POST`, `PUT`, and `DELETE` are generated because these are the write methods
+  used by the Docker API.
+- When `POST=1` and **Omit HTTP methods not used by Docker** is disabled, all HTTP methods supported by
+  `wollomatic/socket-proxy` are allowed for the enabled Docker API sections.
 - Regular expressions are emitted without explicit `^` and `$` anchors because
   `wollomatic/socket-proxy` adds those internally.
 - Generated rules should be reviewed and tested before use in production.

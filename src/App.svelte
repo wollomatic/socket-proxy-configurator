@@ -17,12 +17,20 @@
   let networkInfoDialogElement: HTMLDivElement | undefined = $state();
   let networkInfoDialogTrigger: HTMLElement | undefined = $state();
   let networkInfoDialogOpen = $state(false);
+  let methodInfoCloseButton: HTMLButtonElement | undefined = $state();
+  let methodInfoDialogElement: HTMLDivElement | undefined = $state();
+  let methodInfoDialogTrigger: HTMLElement | undefined = $state();
+  let methodInfoDialogOpen = $state(false);
   let networkListenCompatibility = $state(false);
+  let omitUnusedDockerMethods = $state(true);
   let inputActionMessage = $state('');
   let outputActionMessage = $state('');
 
   let networkListenCompatibilityEnabled = $derived(mode !== 'labels' && networkListenCompatibility);
-  let result = $derived(convert(input, mode, { networkListenCompatibility: networkListenCompatibilityEnabled }));
+  let result = $derived(convert(input, mode, {
+    networkListenCompatibility: networkListenCompatibilityEnabled,
+    omitUnusedDockerMethods
+  }));
   let inputDescription = $derived(inputActionMessage ? 'input-help input-status' : 'input-help');
 
   function syncRestoredInput() {
@@ -51,6 +59,7 @@
     input;
     mode;
     networkListenCompatibilityEnabled;
+    omitUnusedDockerMethods;
     outputActionMessage = '';
   });
 
@@ -124,6 +133,19 @@
     networkInfoDialogTrigger?.focus();
   }
 
+  async function openMethodInfoDialog(event: MouseEvent) {
+    methodInfoDialogTrigger = event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined;
+    methodInfoDialogOpen = true;
+    await tick();
+    methodInfoCloseButton?.focus();
+  }
+
+  async function closeMethodInfoDialog() {
+    methodInfoDialogOpen = false;
+    await tick();
+    methodInfoDialogTrigger?.focus();
+  }
+
   function handleKeydown(event: KeyboardEvent) {
     if (event.key === 'Escape' && privacyDialogOpen) {
       event.preventDefault();
@@ -137,11 +159,19 @@
       return;
     }
 
+    if (event.key === 'Escape' && methodInfoDialogOpen) {
+      event.preventDefault();
+      closeMethodInfoDialog();
+      return;
+    }
+
     const activeDialogElement = privacyDialogOpen
       ? privacyDialogElement
       : networkInfoDialogOpen
         ? networkInfoDialogElement
-        : undefined;
+        : methodInfoDialogOpen
+          ? methodInfoDialogElement
+          : undefined;
 
     if (event.key === 'Tab' && activeDialogElement) {
       const focusableElements = Array.from(
@@ -183,18 +213,33 @@
   </header>
 
   <div class="controls">
-    <div class="compatibility-control">
-      <label class="compatibility" class:disabled={mode === 'labels'}>
-        <input type="checkbox" bind:checked={networkListenCompatibility} disabled={mode === 'labels'} />
-        <span>Include docker-socket-proxy network listener compatibility settings</span>
-      </label>
-      <button
-        class="info-button"
-        type="button"
-        aria-label="Show network listener compatibility information"
-        aria-haspopup="dialog"
-        onclick={openNetworkInfoDialog}
-      >i</button>
+    <div class="compatibility-options">
+      <div class="compatibility-control">
+        <label class="compatibility" class:disabled={mode === 'labels'}>
+          <input type="checkbox" bind:checked={networkListenCompatibility} disabled={mode === 'labels'} />
+          <span>Include docker-socket-proxy network listener compatibility settings</span>
+        </label>
+        <button
+          class="info-button"
+          type="button"
+          aria-label="Show network listener compatibility information"
+          aria-haspopup="dialog"
+          onclick={openNetworkInfoDialog}
+        >i</button>
+      </div>
+      <div class="compatibility-control">
+        <label class="compatibility">
+          <input type="checkbox" bind:checked={omitUnusedDockerMethods} />
+          <span>Omit HTTP methods not used by Docker when POST=1</span>
+        </label>
+        <button
+          class="info-button"
+          type="button"
+          aria-label="Show HTTP method filtering information"
+          aria-haspopup="dialog"
+          onclick={openMethodInfoDialog}
+        >i</button>
+      </div>
     </div>
     <div class="mode" aria-label="Output format">
       <button type="button" class:active={mode === 'command'} aria-pressed={mode === 'command'} onclick={() => (mode = 'command')}>Command line</button>
@@ -309,6 +354,34 @@
         </p>
         <p>
           Security note: allowing all clients on a Docker network is convenient, but broad. wollomatic/socket-proxy can do better than that by limiting access to specific client containers, CIDRs, or hostnames, so prefer a narrow allowfrom value whenever possible.
+        </p>
+      </div>
+    </div>
+  {/if}
+
+  {#if methodInfoDialogOpen}
+    <div class="dialog-layer">
+      <button class="dialog-backdrop" type="button" tabindex="-1" aria-hidden="true" onclick={closeMethodInfoDialog}></button>
+      <div
+        bind:this={methodInfoDialogElement}
+        class="dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="method-info-title"
+        aria-describedby="method-info-description"
+      >
+        <div class="dialog-head">
+          <h2 id="method-info-title">Omit HTTP methods not used by Docker when POST=1</h2>
+          <button class="dialog-close" type="button" aria-label="Close HTTP method filtering information" bind:this={methodInfoCloseButton} onclick={closeMethodInfoDialog}>Close</button>
+        </div>
+        <p id="method-info-description">
+          When enabled, the converter generates allowlists only for the HTTP methods actually used by the Docker API: POST, PUT, DELETE, GET, and HEAD.
+        </p>
+        <p>
+          When disabled, the converter also generates allowlists for PATCH, OPTIONS, CONNECT, and TRACE. This matches the behavior of some existing Docker socket proxy configurations, but allows additional HTTP methods that are not used by the Docker API.
+        </p>
+        <p>
+          This setting has no effect when POST is disabled. In that case, only GET and HEAD allowlists are generated.
         </p>
       </div>
     </div>

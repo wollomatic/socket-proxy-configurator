@@ -82,8 +82,19 @@ services:
 
   assert(result.output.includes("- '-allowPOST=(/v[\\d.]+)?/containers.*'"));
   assert(result.output.includes("- '-allowPUT=(/v[\\d.]+)?/containers.*'"));
-  assert(result.output.includes("- '-allowPATCH=(/v[\\d.]+)?/containers.*'"));
   assert(result.output.includes("- '-allowDELETE=(/v[\\d.]+)?/containers.*'"));
+  assert(!result.output.includes('-allowPATCH='));
+  assert(!result.output.includes('-allowOPTIONS='));
+  assert(!result.output.includes('-allowCONNECT='));
+  assert(!result.output.includes('-allowTRACE='));
+}
+
+{
+  const result = convert('CONTAINERS=1\nPOST=1\nEVENTS=0\nPING=0\nVERSION=0', 'command', {
+    omitUnusedDockerMethods: false
+  });
+
+  assert(result.output.includes("- '-allowPATCH=(/v[\\d.]+)?/containers.*'"));
   assert(result.output.includes("- '-allowOPTIONS=(/v[\\d.]+)?/containers.*'"));
   assert(result.output.includes("- '-allowCONNECT=(/v[\\d.]+)?/containers.*'"));
   assert(result.output.includes("- '-allowTRACE=(/v[\\d.]+)?/containers.*'"));

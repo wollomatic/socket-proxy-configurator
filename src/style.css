@@ -140,6 +140,15 @@ h1 { margin: 0; font-size: clamp(1.55rem, 3vw, 2.45rem); line-height: 1.08; }
   max-width: 100%;
 }
 
+.compatibility-options {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .compatibility input {
   flex: 0 0 auto;
   width: 18px;
