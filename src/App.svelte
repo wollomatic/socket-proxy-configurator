@@ -253,7 +253,7 @@
     No guarantee is given regarding correctness, completeness, security, compatibility, or fitness for a particular purpose. Use at your own risk.<br />
     The authors and contributors assume no liability for any damage, data loss, security issues, downtime, or other consequences resulting from the use of the generated output.<br />
     <br />
-    <a href="https://github.com/wollomatic/socket-proxy-configurator/blob/main/LICENSE">MIT license</a> | <a href="https://github.com/wollomatic/socket-proxy-configurator">Source Code (GitHub)</a> | <a href="https://mein.online-impressum.de/wollomatic/">Imprint</a> | <button class="footer-link" type="button" onclick={openPrivacyDialog}>Data protection</button><br />
+    <a href="https://github.com/wollomatic/socket-proxy-configurator/blob/main/LICENSE">MIT license</a> | <a href="./third-party-licenses.md">Third-party licenses</a> | <a href="https://github.com/wollomatic/socket-proxy-configurator">Source Code (GitHub)</a> | <a href="https://mein.online-impressum.de/wollomatic/">Imprint</a> | <button class="footer-link" type="button" onclick={openPrivacyDialog}>Data protection</button><br />
     <br />
     wollomatic/socket-proxy-configurator <a href="https://github.com/wollomatic/socket-proxy-configurator/releases">version {appVersion}</a>, build date {buildDate}
   </footer>

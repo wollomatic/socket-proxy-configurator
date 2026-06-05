@@ -77,6 +77,7 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
-    modulePreload: { polyfill: false }
+    modulePreload: { polyfill: false },
+    license: { fileName: 'third-party-licenses.md' }
   }
 });
