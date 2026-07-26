@@ -9,12 +9,13 @@
   --text-soft: #aab6d3;
   --text-panel: #c8d3ef;
   --text-accent: #8fb3ff;
+  --text-accent-hover: #a9c2ff;
   --border: #253253;
   --surface: #11182b;
   --surface-raised: #141b32;
   --surface-code: #080d1a;
-  --accent: #3d6df2;
-  --accent-hover: #4d7cff;
+  --accent: #3158c8;
+  --accent-hover: #3964db;
   --radius-panel: 12px;
   --radius-control: 8px;
   --space-container: 16px;
@@ -49,7 +50,7 @@ a {
   transition: color .15s ease, text-decoration-color .15s ease;
 }
 a:hover, .footer-link:hover {
-  color: var(--accent-hover);
+  color: var(--text-accent-hover);
   text-decoration: underline;
   text-decoration-color: currentColor;
 }
@@ -153,9 +154,8 @@ h1 { margin: 0; font-size: clamp(1.55rem, 3vw, 2.45rem); line-height: 1.08; }
   display: grid;
   grid-template-columns: max-content max-content;
   align-items: center;
-  justify-content: end;
+  justify-content: start;
   gap: 8px 12px;
-  margin-left: auto;
 }
 
 .selector-row {
@@ -167,7 +167,7 @@ h1 { margin: 0; font-size: clamp(1.55rem, 3vw, 2.45rem); line-height: 1.08; }
   font-size: .78rem;
   font-weight: 700;
   letter-spacing: .08em;
-  text-align: right;
+  text-align: left;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -379,6 +379,7 @@ footer { color: var(--text-muted); font-size: .92rem; }
   width: min(100%, 560px);
   max-height: calc(100vh - 40px);
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 22px;
   color: var(--text);
   background: var(--surface);
@@ -489,10 +490,6 @@ footer { color: var(--text-muted); font-size: .92rem; }
     gap: 6px;
   }
 
-  .selector-label {
-    text-align: left;
-  }
-
   .selector-row .selector-mode {
     width: 100%;
     justify-self: stretch;
@@ -528,7 +525,27 @@ footer { color: var(--text-muted); font-size: .92rem; }
   }
 
   .panel-head {
+    height: auto;
+    min-height: var(--panel-head-height);
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
     padding: 10px 14px;
+  }
+
+  .panel-head h2 {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .panel-actions {
+    width: 100%;
+  }
+
+  .panel-button {
+    flex: 1 1 auto;
   }
 
   textarea, pre {

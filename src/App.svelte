@@ -43,6 +43,7 @@
     includePodmanEndpoints
   }));
   let inputDescription = $derived(inputActionMessage ? 'input-help input-status' : 'input-help');
+  let inputHasChanges = $derived(input !== defaultLegacyInputForSource(source));
 
   function syncRestoredInput() {
     if (inputElement && inputElement.value !== input) {
@@ -74,6 +75,23 @@
     extendedHaproxyCompatibility;
     includePodmanEndpoints;
     outputActionMessage = '';
+  });
+
+  $effect(() => {
+    if (!inputHasChanges) {
+      return;
+    }
+
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', warnBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', warnBeforeUnload);
+    };
   });
 
   async function copyOutput() {
@@ -235,6 +253,33 @@
   </header>
 
   <div class="controls">
+    <div class="selector-options">
+      <div class="selector-row">
+        <span class="selector-label" id="source-selector-label">Source proxy</span>
+        <div class="mode selector-mode source-mode" role="group" aria-labelledby="source-selector-label">
+          <button
+            type="button"
+            class:active={source === 'tecnativa'}
+            aria-pressed={source === 'tecnativa'}
+            onclick={() => selectSource('tecnativa')}
+          >Tecnativa</button>
+          <button
+            type="button"
+            class:active={source === 'linuxserver'}
+            aria-pressed={source === 'linuxserver'}
+            onclick={() => selectSource('linuxserver')}
+          >LinuxServer</button>
+        </div>
+      </div>
+      <div class="selector-row">
+        <span class="selector-label" id="target-selector-label">Target format</span>
+        <div class="mode selector-mode target-mode" role="group" aria-labelledby="target-selector-label">
+          <button type="button" class:active={mode === 'command'} aria-pressed={mode === 'command'} onclick={() => (mode = 'command')}>Command line</button>
+          <button type="button" class:active={mode === 'env'} aria-pressed={mode === 'env'} onclick={() => (mode = 'env')}>ENV</button>
+          <button type="button" class:active={mode === 'labels'} aria-pressed={mode === 'labels'} onclick={() => (mode = 'labels')}>Docker labels</button>
+        </div>
+      </div>
+    </div>
     <div class="compatibility-options">
       <div class="compatibility-control">
         <label class="compatibility" class:disabled={mode === 'labels'}>
@@ -273,33 +318,6 @@
         </label>
       </div>
     </div>
-    <div class="selector-options">
-      <div class="selector-row">
-        <span class="selector-label" id="source-selector-label">Source proxy</span>
-        <div class="mode selector-mode source-mode" role="group" aria-labelledby="source-selector-label">
-          <button
-            type="button"
-            class:active={source === 'tecnativa'}
-            aria-pressed={source === 'tecnativa'}
-            onclick={() => selectSource('tecnativa')}
-          >Tecnativa</button>
-          <button
-            type="button"
-            class:active={source === 'linuxserver'}
-            aria-pressed={source === 'linuxserver'}
-            onclick={() => selectSource('linuxserver')}
-          >LinuxServer</button>
-        </div>
-      </div>
-      <div class="selector-row">
-        <span class="selector-label" id="target-selector-label">Target format</span>
-        <div class="mode selector-mode target-mode" role="group" aria-labelledby="target-selector-label">
-          <button type="button" class:active={mode === 'command'} aria-pressed={mode === 'command'} onclick={() => (mode = 'command')}>Command line</button>
-          <button type="button" class:active={mode === 'env'} aria-pressed={mode === 'env'} onclick={() => (mode = 'env')}>ENV</button>
-          <button type="button" class:active={mode === 'labels'} aria-pressed={mode === 'labels'} onclick={() => (mode = 'labels')}>Docker labels</button>
-        </div>
-      </div>
-    </div>
   </div>
 
   {#if result.warnings.length > 0}
@@ -324,7 +342,17 @@
         </div>
       </div>
       <p id="input-help" class="sr-only">Paste docker-socket-proxy environment variables, docker-compose snippets, or env file content.</p>
-      <textarea bind:this={inputElement} bind:value={input} aria-labelledby="input-title" aria-describedby={inputDescription} spellcheck="false" placeholder="paste content here"></textarea>
+      <textarea
+        name="source-configuration"
+        bind:this={inputElement}
+        bind:value={input}
+        aria-labelledby="input-title"
+        aria-describedby={inputDescription}
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck="false"
+        placeholder="Paste environment variables, Compose snippets, or env file content…"
+      ></textarea>
       {#if inputActionMessage}
         <p id="input-status" class="panel-message" role="status">{inputActionMessage}</p>
       {/if}
