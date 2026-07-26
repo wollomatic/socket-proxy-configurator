@@ -298,6 +298,18 @@ function asCommandLine(flag: string, value: string): string {
   return `${flag}=${value}`;
 }
 
+const SAFE_OUTPUT_VALUE = /^[a-zA-Z0-9_./,:@%+\[\]-]+$/;
+
+function asEnvSettingLine(key: string, value: string): string {
+  if (SAFE_OUTPUT_VALUE.test(value)) return asEnvLine(key, value);
+  return asEnvLine(key, `'${value.replace(/'/g, "\\'")}'`);
+}
+
+function asCommandSettingLine(flag: string, value: string): string {
+  if (SAFE_OUTPUT_VALUE.test(value)) return asCommandLine(flag, value);
+  return asCommandLine(flag, `'${value.replace(/'/g, "'\"'\"'")}'`);
+}
+
 function asLabelLine(method: string, value: string, index: number): string {
   const suffix = index > 0 ? `.${index}` : '';
   return `  - 'socket-proxy.allow.${method.toLowerCase()}${suffix}=${value}'`;
@@ -336,6 +348,15 @@ function firstConfigured(cfg: LegacyConfig, keys: string[]): string | undefined 
     }
   }
   return undefined;
+}
+
+function includesNetworkRange(value: string, ranges: string[]): boolean {
+  const entries = normalizeValue(value).toLowerCase().split(/[\s,;]+/);
+  return ranges.some((range) => entries.includes(range));
+}
+
+function looksLikeConventionalSocketPath(value: string): boolean {
+  return /^\/[a-zA-Z0-9._/-]+$/.test(value);
 }
 
 function mapLogLevel(rawValue: string | undefined, warnings: string[]): string | undefined {
@@ -416,6 +437,38 @@ export function convert(input: string, mode: OutputMode, options: ConversionOpti
   const writeMethods = extendedCompatibility ? ALL_WRITE_METHODS : DOCKER_WRITE_METHODS;
   const writePatterns = patternsAllowedForWrite(patterns, source, postEnabled);
 
+  if (mode !== 'labels') {
+    const copiedTargetSettings = [
+      socketPath ? `socketpath=${socketPath}` : undefined,
+      configuredListenIp ? `listenip=${configuredListenIp}` : undefined,
+      configuredAllowFrom ? `allowfrom=${configuredAllowFrom}` : undefined
+    ].filter((setting): setting is string => setting !== undefined);
+
+    if (copiedTargetSettings.length > 0) {
+      warnings.push(
+        `Input-derived target settings are included in the generated output: ${copiedTargetSettings.join(', ')}. Values requiring quoting are escaped for the selected output format. Review them before deployment, especially when the pasted input is not fully trusted.`
+      );
+    }
+
+    if (configuredAllowFrom && includesNetworkRange(configuredAllowFrom, ['0.0.0.0/0', '::/0'])) {
+      warnings.push(
+        `The configured allowfrom value ${JSON.stringify(configuredAllowFrom)} permits every client address in at least one address family. Restrict it to trusted client CIDRs or hostnames before deployment.`
+      );
+    }
+
+    if (configuredListenIp && ['0.0.0.0', '::', '[::]'].includes(configuredListenIp.toLowerCase())) {
+      warnings.push(
+        `The configured listenip value ${JSON.stringify(configuredListenIp)} listens on all interfaces in at least one address family. Ensure published ports and allowfrom restrict access to trusted clients.`
+      );
+    }
+
+    if (socketPath && !looksLikeConventionalSocketPath(socketPath)) {
+      warnings.push(
+        `The socketpath value ${JSON.stringify(socketPath)} does not look like a conventional absolute Unix socket path. It is escaped for the selected output format, but should still be reviewed before using the generated output.`
+      );
+    }
+  }
+
   if (extendedCompatibility) {
     warnings.push(
       'Broader source-proxy permissions are enabled. The generated allowlist uses case-insensitive prefix matching and additional HTTP methods, so it can pass requests that are not valid Docker or Podman API endpoints.'
@@ -483,9 +536,9 @@ export function convert(input: string, mode: OutputMode, options: ConversionOpti
 
   const lines: string[] = [];
   if (mode === 'env') {
-    if (listenIp) lines.push(asEnvLine('SP_LISTENIP', listenIp));
-    if (allowFrom) lines.push(asEnvLine('SP_ALLOWFROM', allowFrom));
-    if (socketPath) lines.push(asEnvLine('SP_SOCKETPATH', socketPath));
+    if (listenIp) lines.push(asEnvSettingLine('SP_LISTENIP', listenIp));
+    if (allowFrom) lines.push(asEnvSettingLine('SP_ALLOWFROM', allowFrom));
+    if (socketPath) lines.push(asEnvSettingLine('SP_SOCKETPATH', socketPath));
     if (logLevel) lines.push(asEnvLine('SP_LOGLEVEL', logLevel));
     for (const method of READ_METHODS) {
       patterns.forEach(({ pattern }, idx) => lines.push(asEnvLine(`SP_ALLOW_${method}`, pattern, idx + 1)));
@@ -502,9 +555,9 @@ export function convert(input: string, mode: OutputMode, options: ConversionOpti
       writePatterns.forEach(({ pattern }, idx) => lines.push(asLabelLine(method, pattern, idx)));
     }
   } else {
-    if (listenIp) lines.push(asCommandLine('-listenip', listenIp));
-    if (allowFrom) lines.push(asCommandLine('-allowfrom', allowFrom));
-    if (socketPath) lines.push(asCommandLine('-socketpath', socketPath));
+    if (listenIp) lines.push(asCommandSettingLine('-listenip', listenIp));
+    if (allowFrom) lines.push(asCommandSettingLine('-allowfrom', allowFrom));
+    if (socketPath) lines.push(asCommandSettingLine('-socketpath', socketPath));
     if (logLevel) lines.push(asCommandLine('-loglevel', logLevel));
     for (const method of READ_METHODS) {
       patterns.forEach(({ pattern }) => lines.push(asCommandLine(`-allow${method}`, pattern)));

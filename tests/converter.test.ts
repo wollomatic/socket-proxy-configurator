@@ -373,6 +373,81 @@ services:
   assert(result.output.includes('-socketpath=/run/podman/podman.sock'));
   assert(result.warnings.some((warning) => warning.includes('TZ has no equivalent')));
   assert(result.warnings.some((warning) => warning.includes('BIND_CONFIG is not converted')));
+  assert(
+    result.warnings.some(
+      (warning) =>
+        warning.includes('Input-derived target settings are included') &&
+        warning.includes('socketpath=/run/podman/podman.sock')
+    )
+  );
+}
+
+{
+  const result = convert(
+    'SP_LISTENIP=0.0.0.0\nSP_ALLOWFROM=10.0.0.0/8,0.0.0.0/0\nPING=1\nEVENTS=0\nVERSION=0',
+    'env',
+    { source: 'tecnativa' }
+  );
+
+  assert(lines(result.output).includes('SP_LISTENIP=0.0.0.0'));
+  assert(lines(result.output).includes('SP_ALLOWFROM=10.0.0.0/8,0.0.0.0/0'));
+  assert(
+    result.warnings.some(
+      (warning) =>
+        warning.includes('Input-derived target settings are included') &&
+        warning.includes('listenip=0.0.0.0') &&
+        warning.includes('allowfrom=10.0.0.0/8,0.0.0.0/0')
+    )
+  );
+  assert(result.warnings.some((warning) => warning.includes('permits every client address')));
+  assert(result.warnings.some((warning) => warning.includes('listens on all interfaces')));
+}
+
+{
+  const result = convert("SOCKET_PATH=/tmp/socket' # injected\nPING=1\nEVENTS=0\nVERSION=0", 'env', {
+    source: 'tecnativa'
+  });
+
+  assert(result.output.includes("SP_SOCKETPATH='/tmp/socket\\' # injected'"));
+  assert(
+    result.warnings.some(
+      (warning) =>
+        warning.includes('does not look like a conventional absolute Unix socket path') &&
+        warning.includes('escaped for the selected output format')
+    )
+  );
+}
+
+{
+  const result = convert("SOCKET_PATH=/tmp/socket' # injected\nPING=1\nEVENTS=0\nVERSION=0", 'command', {
+    source: 'tecnativa'
+  });
+
+  assert(result.output.includes("-socketpath='/tmp/socket'\"'\"' # injected'"));
+  assert(!result.output.includes("-socketpath=/tmp/socket' # injected"));
+}
+
+{
+  const result = convert('SOCKET_PATH=$(unexpected)\nPING=1\nEVENTS=0\nVERSION=0', 'command', {
+    source: 'tecnativa'
+  });
+
+  assert(result.output.includes("-socketpath='$(unexpected)'"));
+}
+
+{
+  const result = convert(
+    'SP_LISTENIP=0.0.0.0\nSP_ALLOWFROM=0.0.0.0/0\nSOCKET_PATH=$(unexpected)',
+    'labels',
+    { source: 'tecnativa' }
+  );
+
+  assert(!result.output.includes('SP_LISTENIP'));
+  assert(!result.output.includes('SP_ALLOWFROM'));
+  assert(!result.output.includes('socketpath'));
+  assert(!result.warnings.some((warning) => warning.includes('Input-derived target settings')));
+  assert(!result.warnings.some((warning) => warning.includes('permits every client address')));
+  assert(!result.warnings.some((warning) => warning.includes('listens on all interfaces')));
 }
 
 {
@@ -384,6 +459,11 @@ services:
   assert(lines(result.output).includes('SP_LISTENIP=0.0.0.0'));
   assert(lines(result.output).includes('SP_ALLOWFROM=0.0.0.0/0'));
   assert(result.warnings.some((warning) => warning.includes('DISABLE_IPV6=0 is not reproduced')));
+  assert(
+    !result.warnings.some((warning) =>
+      warning.includes('Input-derived target settings are included')
+    )
+  );
 }
 
 {

@@ -83,6 +83,11 @@ the DEBUG, INFO, WARN, and ERROR levels accepted by wollomatic/socket-proxy.
 Settings without a clean target equivalent, such as `BIND_CONFIG` or `TZ`,
 produce explicit warnings.
 
+Input-derived target settings with format-sensitive characters are escaped for
+the selected output format. ENV values use literal dotenv quoting, while
+command values use POSIX shell quoting. Generated allowlist rules and ordinary
+safe values remain unquoted.
+
 Optional network-listener compatibility can add `listenip` and `allowfrom`
 defaults. Restrict `allowfrom` to trusted containers, hostnames, or CIDRs when
 possible.
