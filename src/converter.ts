@@ -202,7 +202,8 @@ function asEnvLine(key: string, value: string, index?: number): string {
 }
 
 function asCommandLine(flag: string, value?: string): string {
-  return value === undefined ? `- '${flag}'` : `- '${flag}=${value}'`;
+  const argument = value === undefined ? flag : `${flag}=${value}`;
+  return `- '${argument.replaceAll("'", "''")}'`;
 }
 
 function asLabelLine(method: string, value: string, index: number): string {

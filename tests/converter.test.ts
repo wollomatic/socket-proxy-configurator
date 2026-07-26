@@ -156,3 +156,25 @@ services:
   assert(!result.output.includes('events'));
   assert(result.warnings.some((warning) => warning.includes('block all Docker requests')));
 }
+
+{
+  const result = convert(
+    [
+      "SOCKET_PATH=/tmp/socket' # injected",
+      "SP_ALLOWFROM=trusted'$(whoami);#edge",
+      'SP_LISTENIP=- leading',
+      'LOG_LEVEL=debug\\path;&',
+      'EVENTS=0',
+      'PING=0',
+      'VERSION=0'
+    ].join('\n'),
+    'command'
+  );
+
+  assert.deepEqual(lines(result.output), [
+    "- '-listenip=- leading'",
+    "- '-allowfrom=trusted''$(whoami);#edge'",
+    "- '-socketpath=/tmp/socket'' # injected'",
+    "- '-loglevel=DEBUG\\PATH;&'"
+  ]);
+}
