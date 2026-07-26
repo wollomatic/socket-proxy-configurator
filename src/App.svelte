@@ -117,7 +117,7 @@
   }
 
   function selectSource(nextSource: SourceProfile) {
-    const showsCurrentDefault = input.trim() === defaultLegacyInputForSource(source);
+    const showsCurrentDefault = !inputHasChanges;
     source = nextSource;
     if (showsCurrentDefault) {
       input = defaultLegacyInputForSource(nextSource);

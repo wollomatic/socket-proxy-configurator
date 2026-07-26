@@ -26,7 +26,8 @@ Select the proxy that the input was written for:
 
 The **Include Podman-specific endpoints** option is enabled by default for the
 LinuxServer profile. Disable it to omit every native `/libpod/...` rule from the
-target while keeping Docker-compatible LinuxServer rules. The option is
+target while keeping Docker-compatible LinuxServer rules. A warning lists any
+enabled `LIBPOD_*` settings whose paths were not converted. The option is
 disabled in the Tecnativa profile.
 
 The converter accepts plain env files and common line-based Docker Compose
@@ -73,20 +74,25 @@ The application generates:
 - raw command arguments, such as `-allowGET=(/v[\d.]+)?/_ping`
 - unquoted environment entries, such as
   `SP_ALLOW_GET=(/v[\d.]+)?/_ping`
-- per-client Docker label snippets
+- a Compose-compatible labels block, such as:
+
+  ```yaml
+  labels:
+    - 'socket-proxy.allow.get=(/v[\d.]+)?/_ping'
+    - 'socket-proxy.allow.get.1=(/v[\d.]+)?/events(/.*)?'
+  ```
 
 Multiple environment allowlists use wollomatic/socket-proxy's numbered suffix
-format, such as `SP_ALLOW_GET_2`.
+format, such as `SP_ALLOW_GET_2`. Additional label rules use numbered suffixes
+such as `.1`. Label-based allowlists require `SP_PROXYCONTAINERNAME` or
+`-proxycontainername` on the socket-proxy container.
 
-`SOCKET_PATH` is converted directly. Supported source log levels are mapped to
-the DEBUG, INFO, WARN, and ERROR levels accepted by wollomatic/socket-proxy.
-Settings without a clean target equivalent, such as `BIND_CONFIG` or `TZ`,
-produce explicit warnings.
-
-Input-derived target settings with format-sensitive characters are escaped for
-the selected output format. ENV values use literal dotenv quoting, while
-command values use POSIX shell quoting. Generated allowlist rules and ordinary
-safe values remain unquoted.
+`SOCKET_PATH` maps to the target `socketpath` setting when it is a conventional
+absolute Unix socket path containing only letters, digits, `.`, `_`, `-`, and
+`/`. Other socket paths are ignored with an explicit warning. Supported source
+log levels are mapped to the DEBUG, INFO, WARN, and ERROR levels accepted by
+wollomatic/socket-proxy. Settings without a clean target equivalent, including
+`DISABLE_IPV6`, `BIND_CONFIG`, and LinuxServer `TZ`, produce explicit warnings.
 
 Optional network-listener compatibility can add `listenip` and `allowfrom`
 defaults. Restrict `allowfrom` to trusted containers, hostnames, or CIDRs when

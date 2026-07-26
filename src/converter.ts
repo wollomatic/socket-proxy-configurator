@@ -298,18 +298,6 @@ function asCommandLine(flag: string, value: string): string {
   return `${flag}=${value}`;
 }
 
-const SAFE_OUTPUT_VALUE = /^[a-zA-Z0-9_./,:@%+\[\]-]+$/;
-
-function asEnvSettingLine(key: string, value: string): string {
-  if (SAFE_OUTPUT_VALUE.test(value)) return asEnvLine(key, value);
-  return asEnvLine(key, `'${value.replace(/'/g, "\\'")}'`);
-}
-
-function asCommandSettingLine(flag: string, value: string): string {
-  if (SAFE_OUTPUT_VALUE.test(value)) return asCommandLine(flag, value);
-  return asCommandLine(flag, `'${value.replace(/'/g, "'\"'\"'")}'`);
-}
-
 function asLabelLine(method: string, value: string, index: number): string {
   const suffix = index > 0 ? `.${index}` : '';
   return `  - 'socket-proxy.allow.${method.toLowerCase()}${suffix}=${value}'`;
@@ -420,7 +408,10 @@ export function convert(input: string, mode: OutputMode, options: ConversionOpti
     return parsed.value;
   }
 
-  const socketPath = firstConfigured(cfg, ['SOCKET_PATH', 'SP_SOCKETPATH']);
+  const configuredSocketPath = firstConfigured(cfg, ['SOCKET_PATH', 'SP_SOCKETPATH']);
+  const socketPath = configuredSocketPath && looksLikeConventionalSocketPath(configuredSocketPath)
+    ? configuredSocketPath
+    : undefined;
   const logLevel = mapLogLevel(firstConfigured(cfg, ['LOG_LEVEL', 'SP_LOGLEVEL']), warnings);
   const configuredAllowFrom = firstConfigured(cfg, ['SP_ALLOWFROM', 'ALLOWFROM', 'ALLOW_FROM']);
   const configuredListenIp = firstConfigured(cfg, ['SP_LISTENIP', 'LISTENIP', 'LISTEN_IP']);
@@ -446,7 +437,7 @@ export function convert(input: string, mode: OutputMode, options: ConversionOpti
 
     if (copiedTargetSettings.length > 0) {
       warnings.push(
-        `Input-derived target settings are included in the generated output: ${copiedTargetSettings.join(', ')}. Values requiring quoting are escaped for the selected output format. Review them before deployment, especially when the pasted input is not fully trusted.`
+        `Input-derived target settings are copied unchanged into the generated output: ${copiedTargetSettings.join(', ')}. Review them before deployment, especially when the pasted input is not fully trusted.`
       );
     }
 
@@ -461,12 +452,12 @@ export function convert(input: string, mode: OutputMode, options: ConversionOpti
         `The configured listenip value ${JSON.stringify(configuredListenIp)} listens on all interfaces in at least one address family. Ensure published ports and allowfrom restrict access to trusted clients.`
       );
     }
+  }
 
-    if (socketPath && !looksLikeConventionalSocketPath(socketPath)) {
-      warnings.push(
-        `The socketpath value ${JSON.stringify(socketPath)} does not look like a conventional absolute Unix socket path. It is escaped for the selected output format, but should still be reviewed before using the generated output.`
-      );
-    }
+  if (configuredSocketPath && !socketPath) {
+    warnings.push(
+      `The socketpath value ${JSON.stringify(configuredSocketPath)} was ignored because it is not a conventional absolute Unix socket path. Use only letters, digits, ".", "_", "-", and "/" in an absolute path.`
+    );
   }
 
   if (extendedCompatibility) {
@@ -536,9 +527,9 @@ export function convert(input: string, mode: OutputMode, options: ConversionOpti
 
   const lines: string[] = [];
   if (mode === 'env') {
-    if (listenIp) lines.push(asEnvSettingLine('SP_LISTENIP', listenIp));
-    if (allowFrom) lines.push(asEnvSettingLine('SP_ALLOWFROM', allowFrom));
-    if (socketPath) lines.push(asEnvSettingLine('SP_SOCKETPATH', socketPath));
+    if (listenIp) lines.push(asEnvLine('SP_LISTENIP', listenIp));
+    if (allowFrom) lines.push(asEnvLine('SP_ALLOWFROM', allowFrom));
+    if (socketPath) lines.push(asEnvLine('SP_SOCKETPATH', socketPath));
     if (logLevel) lines.push(asEnvLine('SP_LOGLEVEL', logLevel));
     for (const method of READ_METHODS) {
       patterns.forEach(({ pattern }, idx) => lines.push(asEnvLine(`SP_ALLOW_${method}`, pattern, idx + 1)));
@@ -555,9 +546,9 @@ export function convert(input: string, mode: OutputMode, options: ConversionOpti
       writePatterns.forEach(({ pattern }, idx) => lines.push(asLabelLine(method, pattern, idx)));
     }
   } else {
-    if (listenIp) lines.push(asCommandSettingLine('-listenip', listenIp));
-    if (allowFrom) lines.push(asCommandSettingLine('-allowfrom', allowFrom));
-    if (socketPath) lines.push(asCommandSettingLine('-socketpath', socketPath));
+    if (listenIp) lines.push(asCommandLine('-listenip', listenIp));
+    if (allowFrom) lines.push(asCommandLine('-allowfrom', allowFrom));
+    if (socketPath) lines.push(asCommandLine('-socketpath', socketPath));
     if (logLevel) lines.push(asCommandLine('-loglevel', logLevel));
     for (const method of READ_METHODS) {
       patterns.forEach(({ pattern }) => lines.push(asCommandLine(`-allow${method}`, pattern)));

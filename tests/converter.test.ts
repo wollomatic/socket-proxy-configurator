@@ -165,7 +165,12 @@ services:
     VOLUMES: 'volumes(/.*)?'
   };
 
-  assert.equal(Object.keys(dockerPatterns).length, 28);
+  const exposedDockerPathKeys = allLegacyOptionsInput('tecnativa')
+    .split('\n')
+    .map((line) => line.split('=')[0])
+    .filter((key) => key !== 'POST')
+    .sort();
+  assert.deepEqual(Object.keys(dockerPatterns).sort(), exposedDockerPathKeys);
   for (const [key, path] of Object.entries(dockerPatterns)) {
     const result = convert(onlyEnabled('tecnativa', key), 'command', { source: 'tecnativa' });
     assert(
@@ -236,7 +241,12 @@ services:
     LIBPOD_VOLUMES: 'libpod/volumes(/.*)?'
   };
 
-  assert.equal(Object.keys(libpodPatterns).length, 25);
+  const exposedLibpodPathKeys = allLegacyOptionsInput('linuxserver')
+    .split('\n')
+    .map((line) => line.split('=')[0])
+    .filter((key) => key.startsWith('LIBPOD_'))
+    .sort();
+  assert.deepEqual(Object.keys(libpodPatterns).sort(), exposedLibpodPathKeys);
   for (const [key, path] of Object.entries(libpodPatterns)) {
     const result = convert(onlyEnabled('linuxserver', key), 'command', { source: 'linuxserver' });
     assert(
@@ -356,6 +366,14 @@ services:
     });
     if (expected) {
       assert(result.output.includes(`SP_LOGLEVEL=${expected}`), `${input} should map to ${expected}`);
+      if (['notice', 'err', 'crit', 'alert', 'emerg'].includes(input)) {
+        assert(
+          result.warnings.includes(
+            `LOG_LEVEL=${input} is approximated as ${expected} for wollomatic/socket-proxy.`
+          ),
+          `${input} should produce its approximation warning`
+        );
+      }
     } else {
       assert(!result.output.includes('SP_LOGLEVEL='));
       assert(result.warnings.some((warning) => warning.includes('Unsupported LOG_LEVEL')));
@@ -376,7 +394,7 @@ services:
   assert(
     result.warnings.some(
       (warning) =>
-        warning.includes('Input-derived target settings are included') &&
+        warning.includes('Input-derived target settings are copied unchanged') &&
         warning.includes('socketpath=/run/podman/podman.sock')
     )
   );
@@ -394,7 +412,7 @@ services:
   assert(
     result.warnings.some(
       (warning) =>
-        warning.includes('Input-derived target settings are included') &&
+        warning.includes('Input-derived target settings are copied unchanged') &&
         warning.includes('listenip=0.0.0.0') &&
         warning.includes('allowfrom=10.0.0.0/8,0.0.0.0/0')
     )
@@ -408,12 +426,12 @@ services:
     source: 'tecnativa'
   });
 
-  assert(result.output.includes("SP_SOCKETPATH='/tmp/socket\\' # injected'"));
+  assert(!result.output.includes('SP_SOCKETPATH='));
   assert(
     result.warnings.some(
       (warning) =>
-        warning.includes('does not look like a conventional absolute Unix socket path') &&
-        warning.includes('escaped for the selected output format')
+        warning.includes('socketpath value') &&
+        warning.includes('was ignored because it is not a conventional absolute Unix socket path')
     )
   );
 }
@@ -423,8 +441,8 @@ services:
     source: 'tecnativa'
   });
 
-  assert(result.output.includes("-socketpath='/tmp/socket'\"'\"' # injected'"));
-  assert(!result.output.includes("-socketpath=/tmp/socket' # injected"));
+  assert(!result.output.includes('-socketpath='));
+  assert(result.warnings.some((warning) => warning.includes('was ignored')));
 }
 
 {
@@ -432,7 +450,17 @@ services:
     source: 'tecnativa'
   });
 
-  assert(result.output.includes("-socketpath='$(unexpected)'"));
+  assert(!result.output.includes('-socketpath='));
+  assert(result.warnings.some((warning) => warning.includes('was ignored')));
+}
+
+{
+  const result = convert('SOCKET_PATH=/tmp/socket\\\nPING=1\nEVENTS=0\nVERSION=0', 'env', {
+    source: 'tecnativa'
+  });
+
+  assert(!result.output.includes('SP_SOCKETPATH='));
+  assert(result.warnings.some((warning) => warning.includes('was ignored')));
 }
 
 {
@@ -461,7 +489,7 @@ services:
   assert(result.warnings.some((warning) => warning.includes('DISABLE_IPV6=0 is not reproduced')));
   assert(
     !result.warnings.some((warning) =>
-      warning.includes('Input-derived target settings are included')
+      warning.includes('Input-derived target settings are copied unchanged')
     )
   );
 }
