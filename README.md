@@ -1,94 +1,102 @@
 # socket-proxy-configurator
 
-A static web application for converting
-[`docker-socket-proxy`](https://github.com/Tecnativa/docker-socket-proxy)
-environment-style configuration into allowlist configuration for
+A static browser application for converting configurations from
+[`Tecnativa/docker-socket-proxy`](https://github.com/Tecnativa/docker-socket-proxy)
+or
+[`linuxserver/docker-socket-proxy`](https://github.com/linuxserver/docker-socket-proxy)
+into allowlist configuration for
 [`wollomatic/socket-proxy`](https://github.com/wollomatic/socket-proxy).
-
-The application runs entirely in the browser. It does not require a backend,
-does not call external APIs, and does not send pasted configuration data away
-from the user's machine.
 
 URL: https://socket-proxy-configurator.wollomatic.dev/
 
+The application runs entirely in the browser. It has no backend, makes no API
+calls, and never sends pasted configuration away from the user's machine.
+
 > [!NOTE]
-> This is an early release. The resulting allowlists should be carefully
-> reviewed before use in production.
+> This is an early release. Review generated allowlists before using them in
+> production.
 
-## What It Does
+## How it works
 
-Some docker-socket-proxies use section-based environment variables such as
-`CONTAINERS=1`, `IMAGES=0`, `PING=1`, and `POST=0` to control access to Docker
-API paths.
+Select the proxy that the input was written for:
 
-`wollomatic/socket-proxy` uses explicit regular-expression allowlists per HTTP
-method instead. This converter translates the familiar `docker-socket-proxy`
-toggles into compatible `wollomatic/socket-proxy` rules.
+- **Tecnativa** is the default and follows Tecnativa's global `POST` gate.
+- **LinuxServer** additionally supports all documented `LIBPOD_*` settings and
+  its container and pod action toggles that work even when `POST=0`.
 
-For example, this input:
+The **Include Podman-specific endpoints** option is enabled by default for the
+LinuxServer profile. Disable it to omit every native `/libpod/...` rule from the
+target while keeping Docker-compatible LinuxServer rules. A warning lists any
+enabled `LIBPOD_*` settings whose paths were not converted. The option is
+disabled in the Tecnativa profile.
 
-```env
-CONTAINERS=1
-EVENTS=1
-PING=1
-VERSION=1
-POST=0
-```
+The converter accepts plain env files and common line-based Docker Compose
+environment snippets. It ignores comments and structural Compose lines,
+normalizes keys case-insensitively, supports quoted values, and warns about
+invalid or unsupported settings.
 
-can be converted into command-line allowlist arguments such as:
+Enabled boolean values are `1`, `true`, `yes`, `on`, `enable`, and `enabled`.
+Disabled values are `0`, `false`, `no`, `off`, `disable`, and `disabled`.
 
-```text
-- '-allowGET=(/v[\d.]+)?/_ping'
-- '-allowGET=(/v[\d.]+)?/events.*'
-- '-allowGET=(/v[\d.]+)?/version'
-- '-allowHEAD=(/v[\d.]+)?/_ping'
-- '-allowHEAD=(/v[\d.]+)?/events.*'
-- '-allowHEAD=(/v[\d.]+)?/version'
-```
+## Default output policy
 
-The generated output is meant to emulate `docker-socket-proxy` behavior as
-closely as possible while using the allowlist model provided by
-`wollomatic/socket-proxy`.
+The default policy is deliberately limited to valid-looking API path segments
+and HTTP methods used by Docker:
 
-## Supported Input
+- `POST=0` normally produces GET and HEAD rules.
+- `POST=1` additionally produces POST, PUT, and DELETE rules.
+- Section paths use segment boundaries, for example
+  `(/v[\d.]+)?/containers(/.*)?`.
+- Singleton endpoints such as `/_ping` and `/version`, plus action endpoints,
+  remain exact.
+- LinuxServer action toggles are the exception to the global `POST` rule and
+  produce their write rules even when `POST=0`.
 
-The converter accepts pasted configuration in common formats:
+This prevents a section such as `CONTAINERS=1` from also allowing an obviously
+unrelated path such as `/containers-invalid`.
 
-- plain environment variable files
-- `docker-compose.yml` environment snippets
-- lines prefixed with `export`
-- quoted values
-- comments and empty lines
+## Broader source-proxy permissions
 
-Boolean values are normalized case-insensitively. Supported enabled values
-include `1`, `true`, `yes`, `on`, `enable`, and `enabled`. Supported disabled
-values include `0`, `false`, `no`, `off`, `disable`, and `disabled`.
+The optional **Include source-proxy permissions beyond Docker API requirements**
+setting reproduces the broader source ACL behavior:
 
-Unknown or invalid environment-style variables are ignored and shown as
-warnings so the generated result remains auditable.
+- PATCH, OPTIONS, CONNECT, and TRACE are added where writes are allowed.
+- Regexes become case-insensitive HAProxy-style prefix matches, for example
+  `(?i:(/v[\d.]+)?/containers.*)`.
 
-## Output Formats
+The generated regexes never contain explicit `^` or `$` anchors because
+wollomatic/socket-proxy adds them internally.
 
-The web app can generate:
+## Output formats
 
-- command-line arguments
-- environment variables
-- Docker labels
+The application generates:
 
-It also supports optional network listener compatibility settings for setups
-that previously exposed `docker-socket-proxy` over a Docker network.
+- raw command arguments, such as `-allowGET=(/v[\d.]+)?/_ping`
+- unquoted environment entries, such as
+  `SP_ALLOW_GET=(/v[\d.]+)?/_ping`
+- a Compose-compatible labels block, such as:
 
-## Compatibility Notes
+  ```yaml
+  labels:
+    - 'socket-proxy.allow.get=(/v[\d.]+)?/_ping'
+    - 'socket-proxy.allow.get.1=(/v[\d.]+)?/events(/.*)?'
+  ```
 
-- `POST=0` generates only `GET` and `HEAD` allowlists.
-- When `POST=1` and **Omit HTTP methods not used by Docker** is enabled, only
-  `POST`, `PUT`, and `DELETE` are generated because these are the write methods
-  used by the Docker API.
-- When `POST=1` and **Omit HTTP methods not used by Docker** is disabled, all HTTP methods supported by
-  `wollomatic/socket-proxy` are allowed for the enabled Docker API sections.
-- Regular expressions are emitted without explicit `^` and `$` anchors because
-  `wollomatic/socket-proxy` adds those internally.
-- Generated rules should be reviewed and tested before use in production.
+Multiple environment allowlists use wollomatic/socket-proxy's numbered suffix
+format, such as `SP_ALLOW_GET_2`. Additional label rules use numbered suffixes
+such as `.1`. Label-based allowlists require `SP_PROXYCONTAINERNAME` or
+`-proxycontainername` on the socket-proxy container.
+
+`SOCKET_PATH` maps to the target `socketpath` setting when it is a conventional
+absolute Unix socket path containing only letters, digits, `.`, `_`, `-`, and
+`/`. Other socket paths are ignored with an explicit warning. Supported source
+log levels are mapped to the DEBUG, INFO, WARN, and ERROR levels accepted by
+wollomatic/socket-proxy. Settings without a clean target equivalent, including
+`DISABLE_IPV6`, `BIND_CONFIG`, and LinuxServer `TZ`, produce explicit warnings.
+
+Optional network-listener compatibility can add `listenip` and `allowfrom`
+defaults. Restrict `allowfrom` to trusted containers, hostnames, or CIDRs when
+possible.
 
 ## Technology
 
@@ -97,7 +105,14 @@ that previously exposed `docker-socket-proxy` over a Docker network.
 - TypeScript
 - Static single-page application
 
-## AI Assistance Notice
+## Development
+
+```text
+pnpm test
+pnpm build
+```
+
+## AI assistance notice
 
 This application was created with the help of artificial intelligence.
 

@@ -1,12 +1,20 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
-  import { allLegacyOptionsInput, convert, defaultLegacyInput, type OutputMode } from './converter';
+  import {
+    allLegacyOptionsInput,
+    convert,
+    defaultLegacyInput,
+    defaultLegacyInputForSource,
+    type OutputMode,
+    type SourceProfile
+  } from './converter';
 
   const appVersion = __APP_VERSION__;
   const buildDate = __BUILD_DATE__;
 
   let input = $state(defaultLegacyInput);
   let mode = $state<OutputMode>('command');
+  let source = $state<SourceProfile>('tecnativa');
   let inputElement: HTMLTextAreaElement | undefined = $state();
   let outputElement: HTMLTextAreaElement | undefined = $state();
   let privacyCloseButton: HTMLButtonElement | undefined = $state();
@@ -22,16 +30,20 @@
   let methodInfoDialogTrigger: HTMLElement | undefined = $state();
   let methodInfoDialogOpen = $state(false);
   let networkListenCompatibility = $state(false);
-  let omitUnusedDockerMethods = $state(true);
+  let extendedHaproxyCompatibility = $state(false);
+  let includePodmanEndpoints = $state(true);
   let inputActionMessage = $state('');
   let outputActionMessage = $state('');
 
   let networkListenCompatibilityEnabled = $derived(mode !== 'labels' && networkListenCompatibility);
   let result = $derived(convert(input, mode, {
+    source,
     networkListenCompatibility: networkListenCompatibilityEnabled,
-    omitUnusedDockerMethods
+    extendedHaproxyCompatibility,
+    includePodmanEndpoints
   }));
   let inputDescription = $derived(inputActionMessage ? 'input-help input-status' : 'input-help');
+  let inputHasChanges = $derived(input !== defaultLegacyInputForSource(source));
 
   function syncRestoredInput() {
     if (inputElement && inputElement.value !== input) {
@@ -58,9 +70,28 @@
   $effect(() => {
     input;
     mode;
+    source;
     networkListenCompatibilityEnabled;
-    omitUnusedDockerMethods;
+    extendedHaproxyCompatibility;
+    includePodmanEndpoints;
     outputActionMessage = '';
+  });
+
+  $effect(() => {
+    if (!inputHasChanges) {
+      return;
+    }
+
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', warnBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', warnBeforeUnload);
+    };
   });
 
   async function copyOutput() {
@@ -80,13 +111,22 @@
   }
 
   function resetInput() {
-    input = defaultLegacyInput;
+    input = defaultLegacyInputForSource(source);
     inputActionMessage = '';
     inputElement?.focus();
   }
 
+  function selectSource(nextSource: SourceProfile) {
+    const showsCurrentDefault = !inputHasChanges;
+    source = nextSource;
+    if (showsCurrentDefault) {
+      input = defaultLegacyInputForSource(nextSource);
+    }
+    inputActionMessage = '';
+  }
+
   function insertAllOptions() {
-    input = allLegacyOptionsInput;
+    input = allLegacyOptionsInput(source);
     inputActionMessage = '';
     inputElement?.focus();
   }
@@ -213,6 +253,33 @@
   </header>
 
   <div class="controls">
+    <div class="selector-options">
+      <div class="selector-row">
+        <span class="selector-label" id="source-selector-label">Source proxy</span>
+        <div class="mode selector-mode source-mode" role="group" aria-labelledby="source-selector-label">
+          <button
+            type="button"
+            class:active={source === 'tecnativa'}
+            aria-pressed={source === 'tecnativa'}
+            onclick={() => selectSource('tecnativa')}
+          >Tecnativa</button>
+          <button
+            type="button"
+            class:active={source === 'linuxserver'}
+            aria-pressed={source === 'linuxserver'}
+            onclick={() => selectSource('linuxserver')}
+          >LinuxServer</button>
+        </div>
+      </div>
+      <div class="selector-row">
+        <span class="selector-label" id="target-selector-label">Target format</span>
+        <div class="mode selector-mode target-mode" role="group" aria-labelledby="target-selector-label">
+          <button type="button" class:active={mode === 'command'} aria-pressed={mode === 'command'} onclick={() => (mode = 'command')}>Command line</button>
+          <button type="button" class:active={mode === 'env'} aria-pressed={mode === 'env'} onclick={() => (mode = 'env')}>ENV</button>
+          <button type="button" class:active={mode === 'labels'} aria-pressed={mode === 'labels'} onclick={() => (mode = 'labels')}>Docker labels</button>
+        </div>
+      </div>
+    </div>
     <div class="compatibility-options">
       <div class="compatibility-control">
         <label class="compatibility" class:disabled={mode === 'labels'}>
@@ -229,22 +296,27 @@
       </div>
       <div class="compatibility-control">
         <label class="compatibility">
-          <input type="checkbox" bind:checked={omitUnusedDockerMethods} />
-          <span>Omit HTTP methods not used by Docker when POST=1</span>
+          <input type="checkbox" bind:checked={extendedHaproxyCompatibility} />
+          <span>Include source-proxy permissions beyond Docker API requirements</span>
         </label>
         <button
           class="info-button"
           type="button"
-          aria-label="Show HTTP method filtering information"
+          aria-label="Show broader source-proxy permissions information"
           aria-haspopup="dialog"
           onclick={openMethodInfoDialog}
         >i</button>
       </div>
-    </div>
-    <div class="mode" aria-label="Output format">
-      <button type="button" class:active={mode === 'command'} aria-pressed={mode === 'command'} onclick={() => (mode = 'command')}>Command line</button>
-      <button type="button" class:active={mode === 'env'} aria-pressed={mode === 'env'} onclick={() => (mode = 'env')}>ENV</button>
-      <button type="button" class:active={mode === 'labels'} aria-pressed={mode === 'labels'} onclick={() => (mode = 'labels')}>Docker labels</button>
+      <div class="compatibility-control">
+        <label class="compatibility" class:disabled={source !== 'linuxserver'}>
+          <input
+            type="checkbox"
+            bind:checked={includePodmanEndpoints}
+            disabled={source !== 'linuxserver'}
+          />
+          <span>Include Podman-specific endpoints (LinuxServer only)</span>
+        </label>
+      </div>
     </div>
   </div>
 
@@ -270,7 +342,17 @@
         </div>
       </div>
       <p id="input-help" class="sr-only">Paste docker-socket-proxy environment variables, docker-compose snippets, or env file content.</p>
-      <textarea bind:this={inputElement} bind:value={input} aria-labelledby="input-title" aria-describedby={inputDescription} spellcheck="false" placeholder="paste content here"></textarea>
+      <textarea
+        name="source-configuration"
+        bind:this={inputElement}
+        bind:value={input}
+        aria-labelledby="input-title"
+        aria-describedby={inputDescription}
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck="false"
+        placeholder="Paste environment variables, Compose snippets, or env file content…"
+      ></textarea>
       {#if inputActionMessage}
         <p id="input-status" class="panel-message" role="status">{inputActionMessage}</p>
       {/if}
@@ -292,6 +374,7 @@
 
   <footer>
     <br />
+    Source profile: {result.source === 'tecnativa' ? 'Tecnativa' : 'LinuxServer'}<br />
     Enabled: {result.enabled.join(', ') || 'none'}<br />
     <br />
     This tool generates configuration output automatically based on the provided input. The generated configuration and code snippets must be reviewed, validated, and tested by a human before being used in production environments.<br />
@@ -371,17 +454,26 @@
         aria-describedby="method-info-description"
       >
         <div class="dialog-head">
-          <h2 id="method-info-title">Omit HTTP methods not used by Docker when POST=1</h2>
-          <button class="dialog-close" type="button" aria-label="Close HTTP method filtering information" bind:this={methodInfoCloseButton} onclick={closeMethodInfoDialog}>Close</button>
+          <h2 id="method-info-title">Broader source-proxy permissions</h2>
+          <button class="dialog-close" type="button" aria-label="Close broader source-proxy permissions information" bind:this={methodInfoCloseButton} onclick={closeMethodInfoDialog}>Close</button>
         </div>
         <p id="method-info-description">
-          When enabled, the converter generates allowlists only for the HTTP methods actually used by the Docker API: POST, PUT, DELETE, GET, and HEAD.
+          By default, the converter generates a reduced allowlist containing only HTTP methods and valid path patterns required by the Docker API.
         </p>
         <p>
-          When disabled, the converter also generates allowlists for PATCH, OPTIONS, CONNECT, and TRACE. This matches the behavior of some existing Docker socket proxy configurations, but allows additional HTTP methods that are not used by the Docker API.
+          Tecnativa and LinuxServer use broader HAProxy rules. These rules may allow additional HTTP methods, case-insensitive path prefixes, and paths that are not valid Docker API endpoints.
         </p>
         <p>
-          This setting has no effect when POST is disabled. In that case, only GET and HEAD allowlists are generated.
+          Enable this option to reproduce those broader source-proxy permissions more closely. This improves behavioral parity with the selected source proxy, but creates a less restrictive wollomatic/socket-proxy configuration.
+        </p>
+        <p>
+          For example, the default pattern <code>(/v[\d.]+)?/_ping</code> accepts only the exact Docker endpoint. The broader pattern <code>(?i:(/v[\d.]+)?/_ping.*)</code> also accepts differently cased and suffixed paths such as <code>/_PING</code> and <code>/_pingAnything</code>.
+        </p>
+        <p class="dialog-warning" role="note">
+          <strong>Warning:</strong> This mode intentionally allows requests beyond valid Docker or Podman API paths. Enable it only when matching the source proxy's broader behavior is more important than keeping the generated allowlist as restrictive as possible.
+        </p>
+        <p>
+          LinuxServer action toggles are special: they can allow container and Podman actions even when POST=0. Tecnativa keeps those actions behind POST.
         </p>
       </div>
     </div>
